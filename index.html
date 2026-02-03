@@ -220,7 +220,7 @@
                 zoomIn: "Zooma per i dati (z15+)",
                 fetching: "Interrogazione OSM...",
                 mapped: "{n} elementi caricati",
-                serverBusy: "Server occupato, attesa...",
+                serverBusy: "Server occupato, riprovo tra poco...",
                 showMissing: "Evidenzia zone da mappare",
                 dataBadge: "Dati Esistenti",
                 noDataBadge: "Nessun dato HGV",
@@ -238,7 +238,7 @@
                 zoomIn: "Zoom in for data (z15+)",
                 fetching: "Querying OSM...",
                 mapped: "{n} elements loaded",
-                serverBusy: "Server busy, waiting...",
+                serverBusy: "Server busy, retrying soon...",
                 showMissing: "Highlight zones to map",
                 dataBadge: "Existing Data",
                 noDataBadge: "No HGV Data",
@@ -277,7 +277,8 @@
         const map = L.map('map', { zoomControl: false }).setView([45.4642, 9.1900], 15);
         const overpassEndpoints = [
             'https://overpass-api.de/api/interpreter',
-            'https://lz4.overpass-api.de/api/interpreter'
+            'https://lz4.overpass-api.de/api/interpreter',
+            'https://overpass.kumi.systems/api/interpreter'
         ];
         let currentEndpointIndex = 0;
 
@@ -298,7 +299,7 @@
 
         function triggerFetch() {
             if (debounceTimer) clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(fetchHGVData, 600); 
+            debounceTimer = setTimeout(fetchHGVData, 800); 
         }
 
         async function fetchHGVData() {
@@ -314,18 +315,21 @@
             const b = map.getBounds();
             const bbox = `${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
             
-            let query = `[out:json][timeout:25];(`;
+            let query = `[out:json][timeout:50];(`;
             query += `way["hgv"](${bbox});way["maxheight"](${bbox});way["maxweight"](${bbox});way["maxwidth"](${bbox});way["hazmat"](${bbox});way["maxlength"](${bbox});`;
             if (showMissing) {
                 query += `way["highway"~"^(primary|secondary|tertiary|unclassified|residential)$"]["hgv"!~"."]["maxheight"!~"."]["maxweight"!~"."](${bbox});`;
             }
-            query += `);out body;>;out skel qt;`;
+            query += `);out body geom;`;
 
             try {
                 document.getElementById('status-text').textContent = lang.fetching;
                 const response = await fetch(overpassEndpoints[currentEndpointIndex], { 
                     method: 'POST', body: query, signal: currentAbortController.signal 
                 });
+                
+                if (!response.ok) throw new Error('Server Busy');
+
                 const data = await response.json();
                 renderData(data);
                 document.getElementById('status-text').textContent = lang.mapped.replace('{n}', data.elements.filter(e => e.tags).length);
@@ -333,17 +337,16 @@
                 if (e.name !== 'AbortError') {
                     currentEndpointIndex = (currentEndpointIndex + 1) % overpassEndpoints.length;
                     document.getElementById('status-text').innerHTML = `<span class="status-warn">${lang.serverBusy}</span>`;
+                    setTimeout(triggerFetch, 3000);
                 }
             }
         }
 
         function renderData(data) {
             hgvLayer.clearLayers();
-            const nodes = {};
-            data.elements.forEach(el => { if (el.type === 'node') nodes[el.id] = [el.lat, el.lon]; });
             
             data.elements.forEach(el => {
-                if (!el.tags || el.type !== 'way') return;
+                if (!el.tags || el.type !== 'way' || !el.geometry) return;
                 const t = el.tags;
                 const relevantTags = ['hgv', 'maxheight', 'maxweight', 'maxwidth', 'maxlength', 'hazmat', 'maxaxleload', 'trailer'];
                 const hgvTagsFound = relevantTags.filter(key => t[key]);
@@ -363,19 +366,34 @@
                     if (!showMissing) return;
                     color = "rgba(255, 255, 255, 0.4)";
                     dashArray = "10, 10";
+                    weight = 2; // Più sottile se manca dato
                 } else { weight = 6; }
 
-                const latlngs = el.nodes.map(n => nodes[n]).filter(n => n);
+                const latlngs = el.geometry.map(pt => [pt.lat, pt.lon]);
                 if (latlngs.length >= 2) {
-                    const poly = L.polyline(latlngs, { color, weight, dashArray, opacity: 0.85 });
-                    poly.addTo(hgvLayer);
+                    // 1. LAYER INVISIBILE PER IL CLIC (GHOST TARGET)
+                    // Questa linea è larga 20px ma trasparente, rendendo il clic facilissimo
+                    const ghostPoly = L.polyline(latlngs, {
+                        color: 'transparent',
+                        weight: 20,
+                        interactive: true
+                    }).addTo(hgvLayer);
+
+                    // 2. LAYER VISIBILE (ESTETICO)
+                    const visiblePoly = L.polyline(latlngs, { 
+                        color, 
+                        weight, 
+                        dashArray, 
+                        opacity: 0.85,
+                        interactive: false // Il clic passa attraverso al ghost
+                    }).addTo(hgvLayer);
                     
-                    poly.on('click', (e) => {
+                    // Gestione del clic sul Ghost Target
+                    ghostPoly.on('click', (e) => {
                         const editUrl = `https://www.openstreetmap.org/edit?way=${el.id}`;
                         let tableContent = "";
 
                         if (hasHGV) {
-                            // MOSTRA TABELLA DATI ESISTENTI
                             tableContent = `
                                 <div class="table-container">
                                     <table class="data-table">
@@ -386,7 +404,6 @@
                                     </table>
                                 </div>`;
                         } else {
-                            // MOSTRA TABELLA SUGGERIMENTI
                             tableContent = `
                                 <div class="table-container">
                                     <table class="data-table">
@@ -397,11 +414,8 @@
                                         <tr class="table-header"><td colspan="2">${lang.sections.phys}</td></tr>
                                         <tr class="table-row"><td class="table-key">maxheight=*</td><td class="table-val">Altezza (m)</td></tr>
                                         <tr class="table-row"><td class="table-key">maxweight=*</td><td class="table-val">Peso (t)</td></tr>
-                                        <tr class="table-row"><td class="table-key">maxwidth=*</td><td class="table-val">Larghezza (m)</td></tr>
-                                        <tr class="table-row"><td class="table-key">maxlength=*</td><td class="table-val">Lunghezza (m)</td></tr>
                                         <tr class="table-header"><td colspan="2">${lang.sections.cargo}</td></tr>
                                         <tr class="table-row"><td class="table-key">hazmat=no</td><td class="table-val">No ADR</td></tr>
-                                        <tr class="table-row"><td class="table-key">trailer=no</td><td class="table-val">No Rimorchio</td></tr>
                                     </table>
                                 </div>`;
                         }
@@ -414,6 +428,14 @@
                         `;
 
                         L.popup({ maxWidth: 350 }).setLatLng(e.latlng).setContent(popupHtml).openOn(map);
+                    });
+
+                    // Effetto Hover per feedback visivo
+                    ghostPoly.on('mouseover', () => {
+                        visiblePoly.setStyle({ weight: weight + 4, opacity: 1 });
+                    });
+                    ghostPoly.on('mouseout', () => {
+                        visiblePoly.setStyle({ weight: weight, opacity: 0.85 });
                     });
                 }
             });
