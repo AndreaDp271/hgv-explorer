@@ -28,7 +28,7 @@
             position: absolute;
             top: 20px;
             left: 20px;
-            z-index: 1000;
+            z-index: 2000; /* Aumentato per stare sopra a tutto */
             background: rgba(0, 0, 0, 0.9);
             padding: 15px;
             border-radius: 12px;
@@ -37,7 +37,7 @@
             width: 300px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.8);
             backdrop-filter: blur(10px);
-            pointer-events: auto;
+            pointer-events: auto; /* Fondamentale per l'interazione */
         }
 
         h1 {
@@ -55,6 +55,7 @@
             display: flex;
             gap: 5px;
             margin-bottom: 12px;
+            pointer-events: auto;
         }
 
         .search-input {
@@ -66,9 +67,13 @@
             color: white;
             font-size: 0.8rem;
             outline: none;
+            pointer-events: auto; /* Assicura che l'input riceva il focus */
         }
 
-        .search-input:focus { border-color: #ffcc00; }
+        .search-input:focus { 
+            border-color: #ffcc00; 
+            background: #333;
+        }
 
         .icon-btn {
             background: #333;
@@ -82,6 +87,7 @@
             align-items: center;
             justify-content: center;
             transition: all 0.2s;
+            pointer-events: auto;
         }
 
         .icon-btn:hover { background: #444; color: #ffcc00; }
@@ -139,7 +145,7 @@
             position: absolute;
             top: 20px;
             right: 20px;
-            z-index: 1000;
+            z-index: 2000;
             width: 44px;
             height: 44px;
             border-radius: 50%;
@@ -153,6 +159,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            pointer-events: auto;
         }
 
         /* Pannello Legenda */
@@ -160,7 +167,7 @@
             position: absolute;
             top: 75px;
             right: 20px;
-            z-index: 1000;
+            z-index: 2000;
             background: rgba(15, 15, 15, 0.98);
             border: 1px solid #444;
             border-radius: 12px;
@@ -172,6 +179,7 @@
             box-shadow: 0 10px 40px rgba(0,0,0,0.8);
             backdrop-filter: blur(10px);
             overflow-y: auto;
+            pointer-events: auto;
         }
 
         .legend-title { 
@@ -244,7 +252,7 @@
     <div id="ui-overlay">
         <h1>🚛 HGV Explorer</h1>
         <div class="search-container">
-            <input type="text" id="search-box" class="search-input" placeholder="Cerca città o CAP...">
+            <input type="text" id="search-box" class="search-input" placeholder="Cerca città o CAP..." autocomplete="off">
             <button id="search-btn" class="icon-btn">🔍</button>
             <button id="gps-btn" class="icon-btn gps-btn" title="La mia posizione">📍</button>
         </div>
@@ -333,6 +341,13 @@
         L.control.zoom({ position: 'bottomright' }).addTo(map);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM' }).addTo(map);
 
+        // Prevenire che Leaflet catturi gli eventi di scroll/click sugli overlay della UI
+        const overlays = [document.getElementById('ui-overlay'), document.getElementById('info-panel'), document.getElementById('info-btn')];
+        overlays.forEach(el => {
+            L.DomEvent.disableClickPropagation(el);
+            L.DomEvent.disableScrollPropagation(el);
+        });
+
         const hgvLayer = L.layerGroup().addTo(map);
         let currentAbortController = null;
         let showMissing = false;
@@ -348,8 +363,16 @@
             } catch (e) { console.error(e); }
         }
 
-        document.getElementById('search-btn').onclick = performSearch;
-        document.getElementById('search-box').onkeypress = (e) => e.key === 'Enter' && performSearch();
+        document.getElementById('search-btn').onclick = (e) => {
+            e.stopPropagation();
+            performSearch();
+        };
+
+        document.getElementById('search-box').onkeydown = (e) => {
+            e.stopPropagation(); // Evita che i tasti vengano catturati dalla mappa
+            if (e.key === 'Enter') performSearch();
+        };
+
         document.getElementById('gps-btn').onclick = () => map.locate({ setView: true, maxZoom: 16 });
 
         document.getElementById('missing-data-toggle').onchange = (e) => {
@@ -370,10 +393,9 @@
                 return;
             }
 
-            // Impedisce il crash se l'utente zooma troppo indietro
             const bounds = map.getBounds();
             const area = (bounds.getNorth() - bounds.getSouth()) * (bounds.getEast() - bounds.getWest());
-            if (area > 0.05) { // Limite di sicurezza per l'area
+            if (area > 0.05) {
                 document.getElementById('status-text').textContent = lang.zoomIn;
                 return;
             }
