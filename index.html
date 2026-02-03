@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OSM HGV Limits - Offline Explorer</title>
+    <title>OSM HGV Limits - Smart Mapper</title>
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -29,12 +29,12 @@
             top: 20px;
             left: 20px;
             z-index: 1000;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.95);
             padding: 15px;
             border-radius: 12px;
             border: 1px solid #444;
             color: #fff;
-            width: 280px;
+            width: 300px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.8);
             backdrop-filter: blur(10px);
             pointer-events: auto;
@@ -126,9 +126,11 @@
             color: #fff;
             border: 1px solid #444;
             border-radius: 8px;
-            min-width: 320px;
+            width: 350px !important;
         }
+        .leaflet-popup-content { margin: 12px; }
         .leaflet-popup-tip { background: #1a1a1a; }
+        
         .data-badge {
             display: inline-block;
             background: #444;
@@ -136,33 +138,52 @@
             font-size: 0.65rem;
             padding: 2px 6px;
             border-radius: 4px;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
             font-weight: bold;
             text-transform: uppercase;
         }
-        .data-badge.has-data {
-            background: linear-gradient(45deg, #2e7d32, #689f38);
+        .data-badge.has-data { background: linear-gradient(45deg, #2e7d32, #689f38); }
+        .data-badge.missing { background: linear-gradient(45deg, #c62828, #e53935); }
+
+        .popup-info { font-size: 0.85rem; line-height: 1.4; margin-bottom: 12px; color: #eee; border-left: 3px solid #ffcc00; padding-left: 10px; }
+
+        /* --- TABELLE POPUP --- */
+        .table-container {
+            max-height: 250px;
+            overflow-y: auto;
+            background: #222;
+            border: 1px solid #333;
+            border-radius: 6px;
+            padding: 5px;
         }
-        .popup-info { font-size: 0.85rem; line-height: 1.4; margin-bottom: 10px; color: #ddd; }
-        
-        .tag-list {
-            margin: 5px 0;
-            padding: 0;
-            list-style: none;
-            font-family: monospace;
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
             font-size: 0.75rem;
-            color: #88ccff;
         }
+        .table-header {
+            background: #333;
+            color: #ffcc00;
+            padding: 6px 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.65rem;
+            text-align: left;
+        }
+        .table-row { border-bottom: 1px solid #2a2a2a; }
+        .table-row:last-child { border-bottom: none; }
+        .table-key { padding: 6px 8px; color: #88ccff; font-family: monospace; width: 45%; }
+        .table-val { padding: 6px 8px; color: #ccff88; text-align: right; font-weight: bold; }
 
         .btn-edit {
             display: block; width: 100%; text-align: center;
             background: #ffcc00; color: #000; text-decoration: none;
-            padding: 8px; border-radius: 6px; font-size: 0.75rem;
-            font-weight: bold; transition: opacity 0.2s;
-            margin-top: 10px;
+            padding: 10px; border-radius: 6px; font-size: 0.8rem;
+            font-weight: bold; transition: background 0.2s;
+            margin-top: 12px;
         }
-        .btn-edit:hover { opacity: 0.8; }
-        .error-msg { color: #ff3333; font-weight: bold; font-size: 0.7rem; }
+        .btn-edit:hover { background: #e6b800; }
+        .status-warn { color: #ffaa00; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -170,15 +191,15 @@
     <div id="ui-overlay">
         <h1 id="ui-title">🚛 HGV Explorer</h1>
         <div id="status-bar">
-            <span id="status-text">...</span>
+            <span id="status-text">Inizializzazione...</span>
         </div>
         
         <div class="legend" id="ui-legend">
-            <!-- Populated by JS -->
+            <!-- Popolata via JS -->
         </div>
 
         <div class="toggle-container">
-            <span id="label-missing">Mostra strade senza dati</span>
+            <span id="label-missing">Evidenzia zone da mappare</span>
             <label class="switch">
                 <input type="checkbox" id="missing-data-toggle">
                 <span class="slider"></span>
@@ -193,86 +214,76 @@
     <script>
         const userLang = (navigator.language || navigator.userLanguage || 'it').split('-')[0];
         
-        // Localized Strings
         const i18n = {
             it: {
                 title: "🚛 HGV Explorer",
-                ready: "Pronto",
-                zoomIn: "Zooma (z15+)",
-                fetching: "Richiesta mirror #",
-                mapped: "Mappati {n} elementi",
-                serverBusy: "Server occupato, cambio mirror...",
-                allBusy: "Tutti i mirror occupati. Attendi.",
-                showMissing: "Mostra strade senza dati",
-                legend: [
-                    { c: "#00ff66", t: "Libero (yes)" },
-                    { c: "#3388ff", t: "Consigliato (designated)" },
-                    { c: "#ff00ff", t: "Locali/Consegne" },
-                    { c: "#ff3333", t: "Divieto (no)" },
-                    { c: "#ffaa00", t: "Limiti Fisici" },
-                    { c: "rgba(150,150,150,0.5)", t: "Dati HGV mancanti" }
-                ],
-                dataBadge: "DATI RILEVATI",
-                noDataBadge: "NESSUN DATO HGV",
-                editBtn: "✎ Modifica in OSM iD",
-                analyzing: "Analisi locale...",
-                unrestricted: "Strada percorribile senza restrizioni HGV note.",
-                restricted: "Restrizioni trovate: ",
-                hazard: "Attenzione: Trasporto merci pericolose limitato."
+                zoomIn: "Zooma per i dati (z15+)",
+                fetching: "Interrogazione OSM...",
+                mapped: "{n} elementi caricati",
+                serverBusy: "Server occupato, attesa...",
+                showMissing: "Evidenzia zone da mappare",
+                dataBadge: "Dati Esistenti",
+                noDataBadge: "Nessun dato HGV",
+                editBtn: "✎ Modifica con editor iD",
+                sections: {
+                    current: "Valori Attuali Rilevati",
+                    suggest: "Suggerimenti per la mappatura",
+                    access: "Accesso & Percorsi",
+                    phys: "Dimensioni & Peso",
+                    cargo: "Merci & Carichi"
+                }
             },
             en: {
                 title: "🚛 HGV Explorer",
-                ready: "Ready",
-                zoomIn: "Zoom In (z15+)",
-                fetching: "Fetching mirror #",
-                mapped: "Mapped {n} elements",
-                serverBusy: "Server busy, switching mirror...",
-                allBusy: "All mirrors busy. Please wait.",
-                showMissing: "Show roads without data",
-                legend: [
-                    { c: "#00ff66", t: "Allowed (yes)" },
-                    { c: "#3388ff", t: "Designated" },
-                    { c: "#ff00ff", t: "Local/Delivery" },
-                    { c: "#ff3333", t: "Forbidden (no)" },
-                    { c: "#ffaa00", t: "Physical Limits" },
-                    { c: "rgba(150,150,150,0.5)", t: "Missing HGV data" }
-                ],
-                dataBadge: "DATA DETECTED",
-                noDataBadge: "NO HGV DATA",
-                editBtn: "✎ Edit in OSM iD",
-                analyzing: "Local Analysis...",
-                unrestricted: "Road accessible with no known HGV restrictions.",
-                restricted: "Restrictions found: ",
-                hazard: "Warning: Hazmat transport restricted."
+                zoomIn: "Zoom in for data (z15+)",
+                fetching: "Querying OSM...",
+                mapped: "{n} elements loaded",
+                serverBusy: "Server busy, waiting...",
+                showMissing: "Highlight zones to map",
+                dataBadge: "Existing Data",
+                noDataBadge: "No HGV Data",
+                editBtn: "✎ Edit with iD Editor",
+                sections: {
+                    current: "Current Values Detected",
+                    suggest: "Mapping Suggestions",
+                    access: "Access & Routes",
+                    phys: "Dimensions & Weight",
+                    cargo: "Cargo & Loads"
+                }
             }
         };
 
         const lang = i18n[userLang] || i18n.en;
 
-        // UI Initialization
+        const legendData = [
+            { c: "#00ff66", t: "Libero (yes)" },
+            { c: "#3388ff", t: "Consigliato (designated)" },
+            { c: "#ff00ff", t: "Locali / Consegne" },
+            { c: "#ff3333", t: "Divieto (no)" },
+            { c: "#ffaa00", t: "Limiti Fisici" },
+            { c: "rgba(255, 255, 255, 0.3)", t: "Mancanti (da mappare)" }
+        ];
+
         document.getElementById('ui-title').textContent = lang.title;
         document.getElementById('label-missing').textContent = lang.showMissing;
         const legendContainer = document.getElementById('ui-legend');
-        lang.legend.forEach(item => {
+        legendData.forEach(item => {
             const div = document.createElement('div');
             div.className = 'legend-item';
             div.innerHTML = `<div class="color-box" style="background: ${item.c};"></div><span>${item.t}</span>`;
             legendContainer.appendChild(div);
         });
 
-        // Map Setup
         const map = L.map('map', { zoomControl: false }).setView([45.4642, 9.1900], 15);
         const overpassEndpoints = [
             'https://overpass-api.de/api/interpreter',
-            'https://lz4.overpass-api.de/api/interpreter',
-            'https://z.overpass-api.de/api/interpreter'
+            'https://lz4.overpass-api.de/api/interpreter'
         ];
         let currentEndpointIndex = 0;
-        let retryCount = 0;
 
         L.control.zoom({ position: 'bottomright' }).addTo(map);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OSM Contributors'
+            attribution: '&copy; OpenStreetMap contributors'
         }).addTo(map);
 
         const hgvLayer = L.layerGroup().addTo(map);
@@ -285,57 +296,43 @@
             triggerFetch();
         });
 
-        // Local Analysis Engine (Replaces Gemini)
-        function performLocalAnalysis(tags) {
-            let reports = [];
-            if (tags.hgv === 'no') reports.push("🚫 Accesso vietato ai mezzi pesanti.");
-            if (tags.hgv === 'designated') reports.push("✅ Percorso consigliato per mezzi pesanti.");
-            if (tags.maxheight) reports.push(`📏 Altezza max: ${tags.maxheight}m.`);
-            if (tags.maxweight) reports.push(`⚖️ Peso max: ${tags.maxweight}t.`);
-            if (tags.maxlength) reports.push(`📐 Lunghezza max: ${tags.maxlength}m.`);
-            if (tags.hazmat && tags.hazmat !== 'yes') reports.push("⚠️ Restrizioni merci pericolose (ADR).");
-            
-            if (reports.length === 0) {
-                return tags.highway ? `${lang.unrestricted} (Highway: ${tags.highway})` : lang.unrestricted;
-            }
-            return lang.restricted + "<br>" + reports.join("<br>");
-        }
-
         function triggerFetch() {
             if (debounceTimer) clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(fetchHGVData, 800); 
+            debounceTimer = setTimeout(fetchHGVData, 600); 
         }
 
         async function fetchHGVData() {
-            const currentZoom = map.getZoom();
-            const minZoom = showMissing ? 16 : 15; 
-            if (currentZoom < minZoom) {
+            const zoom = map.getZoom();
+            const minZoom = showMissing ? 16 : 15;
+            if (zoom < minZoom) {
                 document.getElementById('status-text').textContent = lang.zoomIn;
-                hgvLayer.clearLayers();
                 return;
             }
             if (currentAbortController) currentAbortController.abort();
             currentAbortController = new AbortController();
 
-            const bounds = map.getBounds();
-            const bbox = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
-            let query = `[out:json][timeout:50];(way["hgv"](${bbox});way["maxheight"](${bbox});way["maxweight"](${bbox});node["maxheight"](${bbox});node["maxweight"](${bbox});way["maxlength"](${bbox});way["maxaxleload"](${bbox});way["hazmat"](${bbox});`;
-            if (showMissing) query += `way["highway"~"^(primary|secondary|tertiary)$"]["hgv"!~"."]["maxheight"!~"."]["maxweight"!~"."](${bbox});`;
+            const b = map.getBounds();
+            const bbox = `${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
+            
+            let query = `[out:json][timeout:25];(`;
+            query += `way["hgv"](${bbox});way["maxheight"](${bbox});way["maxweight"](${bbox});way["maxwidth"](${bbox});way["hazmat"](${bbox});way["maxlength"](${bbox});`;
+            if (showMissing) {
+                query += `way["highway"~"^(primary|secondary|tertiary|unclassified|residential)$"]["hgv"!~"."]["maxheight"!~"."]["maxweight"!~"."](${bbox});`;
+            }
             query += `);out body;>;out skel qt;`;
 
             try {
-                document.getElementById('status-text').textContent = lang.fetching + (currentEndpointIndex + 1);
-                const response = await fetch(overpassEndpoints[currentEndpointIndex], { method: 'POST', body: query, signal: currentAbortController.signal });
+                document.getElementById('status-text').textContent = lang.fetching;
+                const response = await fetch(overpassEndpoints[currentEndpointIndex], { 
+                    method: 'POST', body: query, signal: currentAbortController.signal 
+                });
                 const data = await response.json();
-                retryCount = 0; 
                 renderData(data);
                 document.getElementById('status-text').textContent = lang.mapped.replace('{n}', data.elements.filter(e => e.tags).length);
             } catch (e) {
                 if (e.name !== 'AbortError') {
                     currentEndpointIndex = (currentEndpointIndex + 1) % overpassEndpoints.length;
-                    retryCount++;
-                    document.getElementById('status-text').innerHTML = `<span class="error-msg">${retryCount < 6 ? lang.serverBusy : lang.allBusy}</span>`;
-                    if (retryCount < 6) setTimeout(fetchHGVData, 1500);
+                    document.getElementById('status-text').innerHTML = `<span class="status-warn">${lang.serverBusy}</span>`;
                 }
             }
         }
@@ -344,51 +341,79 @@
             hgvLayer.clearLayers();
             const nodes = {};
             data.elements.forEach(el => { if (el.type === 'node') nodes[el.id] = [el.lat, el.lon]; });
+            
             data.elements.forEach(el => {
-                if (!el.tags) return;
-                let color = "rgba(150, 150, 150, 0.4)"; 
-                let weight = 3;
+                if (!el.tags || el.type !== 'way') return;
                 const t = el.tags;
-                
+                const relevantTags = ['hgv', 'maxheight', 'maxweight', 'maxwidth', 'maxlength', 'hazmat', 'maxaxleload', 'trailer'];
+                const hgvTagsFound = relevantTags.filter(key => t[key]);
+                const hasHGV = hgvTagsFound.length > 0;
+
+                let color = "rgba(255, 255, 255, 0.2)";
+                let weight = 3;
+                let dashArray = null;
+
                 if (t.hgv === 'no') color = "#ff3333";
                 else if (t.hgv === 'yes') color = "#00ff66";
                 else if (t.hgv === 'designated') color = "#3388ff";
                 else if (['destination', 'delivery', 'local'].some(v => t.hgv?.includes(v))) color = "#ff00ff";
-                else if (t.maxheight || t.maxweight || t.maxlength || t.hazmat) color = "#ffaa00";
+                else if (t.maxheight || t.maxweight) color = "#ffaa00";
+                
+                if (!hasHGV) {
+                    if (!showMissing) return;
+                    color = "rgba(255, 255, 255, 0.4)";
+                    dashArray = "10, 10";
+                } else { weight = 6; }
 
-                let layer;
-                if (el.type === 'way' && el.nodes) {
-                    const latlngs = el.nodes.map(n => nodes[n]).filter(n => n);
-                    if (latlngs.length >= 2) layer = L.polyline(latlngs, { color, weight: color.includes('rgba') ? 3 : 6, opacity: 0.8 });
-                } else if (el.type === 'node') {
-                    layer = L.circleMarker([el.lat, el.lon], { radius: 7, fillColor: (t.hgv === 'no' || (t.maxheight && parseFloat(t.maxheight) < 3.5)) ? "#ff3333" : "#ffff00", color: "#000", weight: 1, fillOpacity: 1 });
-                }
+                const latlngs = el.nodes.map(n => nodes[n]).filter(n => n);
+                if (latlngs.length >= 2) {
+                    const poly = L.polyline(latlngs, { color, weight, dashArray, opacity: 0.85 });
+                    poly.addTo(hgvLayer);
+                    
+                    poly.on('click', (e) => {
+                        const editUrl = `https://www.openstreetmap.org/edit?way=${el.id}`;
+                        let tableContent = "";
 
-                if (layer) {
-                    layer.addTo(hgvLayer);
-                    layer.on('click', (e) => {
-                        L.DomEvent.stopPropagation(e);
-                        const analysis = performLocalAnalysis(t);
-                        const hasData = t.hgv || t.maxheight || t.maxweight || t.hazmat;
-                        const editUrl = `https://www.openstreetmap.org/edit?${el.type}=${el.id}`;
-                        
-                        let tagListHtml = '<ul class="tag-list">';
-                        for (const [key, value] of Object.entries(t)) {
-                            if (['hgv', 'maxheight', 'maxweight', 'maxlength', 'hazmat', 'highway'].includes(key)) {
-                                tagListHtml += `<li><b>${key}</b>: ${value}</li>`;
-                            }
+                        if (hasHGV) {
+                            // MOSTRA TABELLA DATI ESISTENTI
+                            tableContent = `
+                                <div class="table-container">
+                                    <table class="data-table">
+                                        <tr class="table-header"><td colspan="2">${lang.sections.current}</td></tr>
+                                        ${hgvTagsFound.map(k => `
+                                            <tr class="table-row"><td class="table-key">${k}</td><td class="table-val">${t[k]}</td></tr>
+                                        `).join('')}
+                                    </table>
+                                </div>`;
+                        } else {
+                            // MOSTRA TABELLA SUGGERIMENTI
+                            tableContent = `
+                                <div class="table-container">
+                                    <table class="data-table">
+                                        <tr class="table-header"><td colspan="2">${lang.sections.access}</td></tr>
+                                        <tr class="table-row"><td class="table-key">hgv=no</td><td class="table-val">Vietato</td></tr>
+                                        <tr class="table-row"><td class="table-key">hgv=designated</td><td class="table-val">Consigliato</td></tr>
+                                        <tr class="table-row"><td class="table-key">hgv=destination</td><td class="table-val">Destinazione</td></tr>
+                                        <tr class="table-header"><td colspan="2">${lang.sections.phys}</td></tr>
+                                        <tr class="table-row"><td class="table-key">maxheight=*</td><td class="table-val">Altezza (m)</td></tr>
+                                        <tr class="table-row"><td class="table-key">maxweight=*</td><td class="table-val">Peso (t)</td></tr>
+                                        <tr class="table-row"><td class="table-key">maxwidth=*</td><td class="table-val">Larghezza (m)</td></tr>
+                                        <tr class="table-row"><td class="table-key">maxlength=*</td><td class="table-val">Lunghezza (m)</td></tr>
+                                        <tr class="table-header"><td colspan="2">${lang.sections.cargo}</td></tr>
+                                        <tr class="table-row"><td class="table-key">hazmat=no</td><td class="table-val">No ADR</td></tr>
+                                        <tr class="table-row"><td class="table-key">trailer=no</td><td class="table-val">No Rimorchio</td></tr>
+                                    </table>
+                                </div>`;
                         }
-                        tagListHtml += '</ul>';
 
-                        L.popup()
-                            .setLatLng(e.latlng)
-                            .setContent(`
-                                <div class="data-badge ${hasData ? 'has-data' : ''}">${hasData ? lang.dataBadge : lang.noDataBadge}</div>
-                                <div class="popup-info">${analysis}</div>
-                                ${tagListHtml}
-                                <a href="${editUrl}" target="_blank" class="btn-edit">${lang.editBtn}</a>
-                            `)
-                            .openOn(map);
+                        const popupHtml = `
+                            <div class="data-badge ${hasHGV ? 'has-data' : 'missing'}">${hasHGV ? lang.dataBadge : lang.noDataBadge}</div>
+                            <div class="popup-info">${hasHGV ? 'Informazioni rilevate su mappa.' : 'Strada senza tag HGV specifici.'}</div>
+                            ${tableContent}
+                            <a href="${editUrl}" target="_blank" class="btn-edit">${lang.editBtn}</a>
+                        `;
+
+                        L.popup({ maxWidth: 350 }).setLatLng(e.latlng).setContent(popupHtml).openOn(map);
                     });
                 }
             });
