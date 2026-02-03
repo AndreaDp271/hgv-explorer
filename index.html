@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSM HGV Limits - Map Explorer</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0d0d0d;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        /* Overlay UI */
+        #ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(0, 0, 0, 0.9);
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid #444;
+            color: #fff;
+            width: 280px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            pointer-events: auto;
+        }
+
+        h1 {
+            margin: 0 0 10px 0;
+            font-size: 1rem;
+            color: #ffcc00;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #status-bar {
+            font-size: 0.75rem;
+            color: #aaa;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+
+        .legend {
+            font-size: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .color-box {
+            width: 14px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        /* Switch UI */
+        .toggle-container {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.75rem;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 34px;
+            height: 20px;
+        }
+
+        .switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #333;
+            transition: .4s;
+            border-radius: 20px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px; width: 14px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider { background-color: #ffcc00; }
+        input:checked + .slider:before { transform: translateX(14px); }
+
+        /* Popup Styles */
+        .leaflet-popup-content-wrapper {
+            background: #1a1a1a;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 8px;
+            min-width: 320px;
+        }
+        .leaflet-popup-tip { background: #1a1a1a; }
+        .ai-badge {
+            display: inline-block;
+            background: linear-gradient(45deg, #4285f4, #9b72cb);
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .popup-info { font-size: 0.85rem; line-height: 1.4; margin-bottom: 10px; }
+        
+        /* Advanced Cheat Sheet Style */
+        .cheat-sheet {
+            background: #222;
+            border: 1px solid #444;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 0.7rem;
+            border-radius: 6px;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+        .cheat-sheet-title {
+            color: #ffcc00;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 8px;
+            border-bottom: 1px solid #555;
+            font-size: 0.8rem;
+            text-align: center;
+        }
+        .tag-group {
+            margin-bottom: 12px;
+        }
+        .tag-group-label {
+            color: #ffcc00;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 4px;
+            font-size: 0.65rem;
+            font-weight: bold;
+        }
+        .tag-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+            padding: 2px 4px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 3px;
+        }
+        .tag-key { color: #88ccff; font-family: monospace; }
+        .tag-val { color: #ccff88; font-family: monospace; text-align: right; }
+        .tag-desc { color: #aaa; font-size: 0.6rem; margin-top: 1px; display: block; padding-left: 4px; }
+
+        .btn-edit {
+            display: block; width: 100%; text-align: center;
+            background: #ffcc00; color: #000; text-decoration: none;
+            padding: 8px; border-radius: 6px; font-size: 0.75rem;
+            font-weight: bold; transition: opacity 0.2s;
+            margin-top: 10px;
+        }
+        .btn-edit:hover { opacity: 0.8; }
+        .error-msg { color: #ff3333; font-weight: bold; font-size: 0.7rem; }
+    </style>
+</head>
+<body>
+
+    <div id="ui-overlay">
+        <h1 id="ui-title">🚛 HGV Explorer</h1>
+        <div id="status-bar">
+            <span id="status-text">...</span>
+        </div>
+        
+        <div class="legend" id="ui-legend">
+            <!-- Populated by JS -->
+        </div>
+
+        <div class="toggle-container">
+            <span id="label-missing">Mostra strade senza dati</span>
+            <label class="switch">
+                <input type="checkbox" id="missing-data-toggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        const apiKey = ""; 
+        const userLang = navigator.language || navigator.userLanguage || 'it';
+        
+        // Sistema di Traduzione Multilingua
+        const i18n = {
+            it: {
+                title: "🚛 HGV Explorer",
+                ready: "Pronto",
+                zoomIn: "Zooma (z15+)",
+                fetching: "Richiesta mirror #",
+                mapped: "Mappati {n} elementi",
+                serverBusy: "Server occupato, cambio mirror...",
+                allBusy: "Tutti i mirror occupati. Attendi.",
+                showMissing: "Mostra strade senza dati",
+                legend: [
+                    { c: "#00ff66", t: "Libero (yes)" },
+                    { c: "#3388ff", t: "Consigliato (designated)" },
+                    { c: "#ff00ff", t: "Locali/Consegne" },
+                    { c: "#ff3333", t: "Divieto (no)" },
+                    { c: "#ffaa00", t: "Limiti Fisici" },
+                    { c: "rgba(150,150,150,0.5)", t: "Dati HGV mancanti" }
+                ],
+                aiAnalysis: "ANALISI HGV ✨",
+                noData: "DATI MANCANTI ⚠️",
+                editBtn: "✎ Modifica in OSM iD",
+                analyzing: "Analisi...",
+                guideTitle: "Guida Tecnica Tag HGV"
+            },
+            en: {
+                title: "🚛 HGV Explorer",
+                ready: "Ready",
+                zoomIn: "Zoom In (z15+)",
+                fetching: "Fetching mirror #",
+                mapped: "Mapped {n} elements",
+                serverBusy: "Server busy, switching mirror...",
+                allBusy: "All mirrors busy. Please wait.",
+                showMissing: "Show roads without data",
+                legend: [
+                    { c: "#00ff66", t: "Allowed (yes)" },
+                    { c: "#3388ff", t: "Designated" },
+                    { c: "#ff00ff", t: "Local/Delivery" },
+                    { c: "#ff3333", t: "Forbidden (no)" },
+                    { c: "#ffaa00", t: "Physical Limits" },
+                    { c: "rgba(150,150,150,0.5)", t: "Missing HGV data" }
+                ],
+                aiAnalysis: "HGV ANALYSIS ✨",
+                noData: "MISSING DATA ⚠️",
+                editBtn: "✎ Edit in OSM iD",
+                analyzing: "Analyzing...",
+                guideTitle: "HGV Tagging Guide"
+            }
+        };
+
+        // Fallback a inglese se la lingua non è supportata
+        const lang = i18n[userLang.split('-')[0]] || i18n.en;
+
+        // Inizializzazione UI con lingua corretta
+        document.getElementById('ui-title').textContent = lang.title;
+        document.getElementById('label-missing').textContent = lang.showMissing;
+        const legendContainer = document.getElementById('ui-legend');
+        lang.legend.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'legend-item';
+            div.innerHTML = `<div class="color-box" style="background: ${item.c};"></div><span>${item.t}</span>`;
+            legendContainer.appendChild(div);
+        });
+
+        const map = L.map('map', { zoomControl: false }).setView([45.4642, 9.1900], 15);
+        const overpassEndpoints = [
+            'https://overpass-api.de/api/interpreter',
+            'https://lz4.overpass-api.de/api/interpreter',
+            'https://z.overpass-api.de/api/interpreter',
+            'https://overpass.kumi.systems/api/interpreter'
+        ];
+        let currentEndpointIndex = 0;
+        let retryCount = 0;
+
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: `&copy; OSM | AI Gemini | Lang: ${userLang}`
+        }).addTo(map);
+
+        const hgvLayer = L.layerGroup().addTo(map);
+        let currentAbortController = null;
+        let showMissing = false;
+        let debounceTimer = null;
+
+        document.getElementById('missing-data-toggle').addEventListener('change', (e) => {
+            showMissing = e.target.checked;
+            triggerFetch();
+        });
+
+        async function getAIInfo(tags) {
+            const hasHGV = tags.hgv || tags.maxheight || tags.maxweight || Object.keys(tags).some(k => k.startsWith('hgv:'));
+            // Chiediamo all'IA di rispondere nella lingua dell'utente
+            const prompt = `Analyze these OSM tags for a heavy truck: ${JSON.stringify(tags)}. Be extremely brief (max 12 words). Respond in ${userLang}.`;
+            const system = "You are a logistics expert. Be concise.";
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        systemInstruction: { parts: [{ text: system }] }
+                    })
+                });
+                const data = await response.json();
+                return data.candidates?.[0]?.content?.parts?.[0]?.text || "...";
+            } catch (e) { return "AI Error."; }
+        }
+
+        function triggerFetch() {
+            if (debounceTimer) clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(fetchHGVData, 800); 
+        }
+
+        async function fetchHGVData() {
+            const currentZoom = map.getZoom();
+            const minZoom = showMissing ? 16 : 15; 
+            if (currentZoom < minZoom) {
+                document.getElementById('status-text').textContent = lang.zoomIn;
+                hgvLayer.clearLayers();
+                return;
+            }
+            if (currentAbortController) currentAbortController.abort();
+            currentAbortController = new AbortController();
+
+            const bounds = map.getBounds();
+            const bbox = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
+            let query = `[out:json][timeout:50];(way["hgv"](${bbox});way["maxheight"](${bbox});way["maxweight"](${bbox});node["maxheight"](${bbox});node["maxweight"](${bbox});way["maxlength"](${bbox});way["maxaxleload"](${bbox});way["hazmat"](${bbox});`;
+            if (showMissing) query += `way["highway"~"^(primary|secondary|tertiary)$"]["hgv"!~"."]["maxheight"!~"."]["maxweight"!~"."](${bbox});`;
+            query += `);out body;>;out skel qt;`;
+
+            try {
+                document.getElementById('status-text').textContent = lang.fetching + (currentEndpointIndex + 1);
+                const response = await fetch(overpassEndpoints[currentEndpointIndex], { method: 'POST', body: query, signal: currentAbortController.signal });
+                const data = await response.json();
+                retryCount = 0; 
+                renderData(data);
+                document.getElementById('status-text').textContent = lang.mapped.replace('{n}', data.elements.filter(e => e.tags).length);
+            } catch (e) {
+                if (e.name !== 'AbortError') {
+                    currentEndpointIndex = (currentEndpointIndex + 1) % overpassEndpoints.length;
+                    retryCount++;
+                    document.getElementById('status-text').innerHTML = `<span class="error-msg">${retryCount < 8 ? lang.serverBusy : lang.allBusy}</span>`;
+                    if (retryCount < 8) setTimeout(fetchHGVData, 1500);
+                }
+            }
+        }
+
+        function renderData(data) {
+            hgvLayer.clearLayers();
+            const nodes = {};
+            data.elements.forEach(el => { if (el.type === 'node') nodes[el.id] = [el.lat, el.lon]; });
+            data.elements.forEach(el => {
+                if (!el.tags) return;
+                let color = "rgba(150, 150, 150, 0.4)"; 
+                let weight = 3;
+                const t = el.tags;
+                const hgv = t.hgv;
+                const mh = t.maxheight;
+                const mw = t.maxweight;
+                const ml = t.maxlength;
+                const haz = t.hazmat;
+                const hgvSub = Object.keys(t).some(k => k.startsWith('hgv:'));
+
+                if (hgv === 'no') color = "#ff3333";
+                else if (hgv === 'yes') color = "#00ff66";
+                else if (hgv === 'designated') color = "#3388ff";
+                else if (['destination', 'delivery', 'local'].some(v => hgv?.includes(v))) color = "#ff00ff";
+                else if (mh || mw || ml || haz || hgvSub) color = "#ffaa00";
+
+                let layer;
+                if (el.type === 'way' && el.nodes) {
+                    const latlngs = el.nodes.map(n => nodes[n]).filter(n => n);
+                    if (latlngs.length >= 2) layer = L.polyline(latlngs, { color, weight: color.includes('rgba') ? 3 : 6, opacity: 0.8 });
+                } else if (el.type === 'node') {
+                    layer = L.circleMarker([el.lat, el.lon], { radius: 7, fillColor: (hgv === 'no' || (mh && parseFloat(mh) < 3.5)) ? "#ff3333" : "#ffff00", color: "#000", weight: 1, fillOpacity: 1 });
+                }
+
+                if (layer) {
+                    layer.addTo(hgvLayer);
+                    layer.on('click', async (e) => {
+                        L.DomEvent.stopPropagation(e);
+                        const popup = L.popup().setLatLng(e.latlng).setContent(lang.analyzing).openOn(map);
+                        const ai = await getAIInfo(el.tags);
+                        const editUrl = `https://www.openstreetmap.org/edit?${el.type}=${el.id}`;
+                        popup.setContent(`
+                            <div class="ai-badge">${hgv || mh || mw || hgvSub ? lang.aiAnalysis : lang.noData}</div>
+                            <div class="popup-info">${ai}</div>
+                            <a href="${editUrl}" target="_blank" class="btn-edit">${lang.editBtn}</a>
+                        `);
+                    });
+                }
+            });
+        }
+
+        map.on('moveend', triggerFetch);
+        triggerFetch();
+    </script>
+</body>
+</html>
