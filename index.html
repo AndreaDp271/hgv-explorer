@@ -23,13 +23,13 @@
             z-index: 1;
         }
 
-        /* Overlay UI */
+        /* Overlay UI Principale */
         #ui-overlay {
             position: absolute;
             top: 20px;
             left: 20px;
             z-index: 1000;
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(0, 0, 0, 0.9);
             padding: 15px;
             border-radius: 12px;
             border: 1px solid #444;
@@ -51,7 +51,6 @@
             gap: 8px;
         }
 
-        /* Search & GPS Bar */
         .search-container {
             display: flex;
             gap: 5px;
@@ -87,38 +86,15 @@
 
         .icon-btn:hover { background: #444; color: #ffcc00; }
         .icon-btn.gps-btn { background: #ffcc00; color: #000; border: none; }
-        .icon-btn.gps-btn:hover { background: #e6b800; }
 
         #status-bar {
             font-size: 0.75rem;
             color: #aaa;
-            margin-bottom: 12px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #333;
+            margin-bottom: 5px;
         }
 
-        .legend {
-            font-size: 0.75rem;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .color-box {
-            width: 14px;
-            height: 4px;
-            border-radius: 2px;
-        }
-
-        /* Switch UI */
         .toggle-container {
-            margin-top: 15px;
+            margin-top: 10px;
             padding-top: 10px;
             border-top: 1px solid #333;
             display: flex;
@@ -158,15 +134,70 @@
         input:checked + .slider { background-color: #ffcc00; }
         input:checked + .slider:before { transform: translateX(14px); }
 
-        /* Popup Styles */
-        .leaflet-popup-content-wrapper {
-            background: #1a1a1a;
-            color: #fff;
-            border: 1px solid #444;
-            border-radius: 8px;
-            width: 350px !important;
+        /* Pulsante Info Legenda */
+        #info-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #ffcc00;
+            color: #000;
+            border: none;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .leaflet-popup-content { margin: 12px; }
+
+        /* Pannello Legenda */
+        #info-panel {
+            position: absolute;
+            top: 75px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(15, 15, 15, 0.98);
+            border: 1px solid #444;
+            border-radius: 12px;
+            width: 320px;
+            max-height: 80vh;
+            padding: 20px;
+            color: #eee;
+            display: none;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+        }
+
+        .legend-title { 
+            color: #ffcc00; 
+            font-size: 0.85rem; 
+            font-weight: bold; 
+            margin-bottom: 12px; 
+            border-bottom: 1px solid #333; 
+            padding-bottom: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .legend-list { list-style: none; padding: 0; margin: 0 0 20px 0; font-size: 0.8rem; }
+        .legend-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+        .color-box { width: 14px; height: 14px; border-radius: 3px; }
+
+        .guide-table { width: 100%; border-collapse: collapse; font-size: 0.7rem; margin-bottom: 15px; background: #222; border-radius: 4px; overflow: hidden; }
+        .guide-table td { padding: 6px 8px; border-bottom: 1px solid #111; }
+        .guide-key { color: #88ccff; font-family: monospace; }
+        .guide-val { color: #aaa; text-align: right; }
+
+        /* Popup Styles */
+        .leaflet-popup-content-wrapper { background: #1a1a1a; color: #fff; border: 1px solid #444; border-radius: 8px; width: 300px !important; }
+        .leaflet-popup-content { margin: 15px; }
         .leaflet-popup-tip { background: #1a1a1a; }
         
         .data-badge {
@@ -174,77 +205,52 @@
             background: #444;
             color: white;
             font-size: 0.65rem;
-            padding: 2px 6px;
+            padding: 3px 8px;
             border-radius: 4px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             font-weight: bold;
             text-transform: uppercase;
         }
-        .data-badge.has-data { background: linear-gradient(45deg, #2e7d32, #689f38); }
-        .data-badge.missing { background: linear-gradient(45deg, #c62828, #e53935); }
-
-        .popup-info { font-size: 0.85rem; line-height: 1.4; margin-bottom: 12px; color: #eee; border-left: 3px solid #ffcc00; padding-left: 10px; }
+        .data-badge.has-data { background: #2e7d32; }
+        .data-badge.missing { background: #c62828; }
 
         .table-container {
-            max-height: 250px;
+            max-height: 200px;
             overflow-y: auto;
-            background: #222;
+            background: #111;
             border: 1px solid #333;
             border-radius: 6px;
-            padding: 5px;
         }
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.75rem;
-        }
-        .table-header {
-            background: #333;
-            color: #ffcc00;
-            padding: 6px 8px;
-            font-weight: bold;
-            text-transform: uppercase;
-            font-size: 0.65rem;
-            text-align: left;
-        }
-        .table-row { border-bottom: 1px solid #2a2a2a; }
-        .table-row:last-child { border-bottom: none; }
-        .table-key { padding: 6px 8px; color: #88ccff; font-family: monospace; width: 45%; }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        .table-header { background: #222; color: #ffcc00; padding: 8px; font-weight: bold; text-transform: uppercase; font-size: 0.65rem; text-align: left; }
+        .table-row { border-bottom: 1px solid #222; }
+        .table-key { padding: 6px 8px; color: #88ccff; font-family: monospace; }
         .table-val { padding: 6px 8px; color: #ccff88; text-align: right; font-weight: bold; }
 
         .btn-edit {
             display: block; width: 100%; text-align: center;
             background: #ffcc00; color: #000; text-decoration: none;
             padding: 10px; border-radius: 6px; font-size: 0.8rem;
-            font-weight: bold; transition: background 0.2s;
-            margin-top: 12px;
+            font-weight: bold; margin-top: 15px; transition: 0.2s;
         }
         .btn-edit:hover { background: #e6b800; }
-        .status-warn { color: #ffaa00; font-weight: bold; }
+
+        #info-panel::-webkit-scrollbar { width: 4px; }
+        #info-panel::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
     </style>
 </head>
 <body>
 
     <div id="ui-overlay">
-        <h1 id="ui-title">🚛 HGV Explorer</h1>
-        
-        <!-- Search Bar -->
+        <h1>🚛 HGV Explorer</h1>
         <div class="search-container">
             <input type="text" id="search-box" class="search-input" placeholder="Cerca città o CAP...">
             <button id="search-btn" class="icon-btn">🔍</button>
             <button id="gps-btn" class="icon-btn gps-btn" title="La mia posizione">📍</button>
         </div>
-
-        <div id="status-bar">
-            <span id="status-text">Inizializzazione...</span>
-        </div>
-        
-        <div class="legend" id="ui-legend">
-            <!-- Popolata via JS -->
-        </div>
-
+        <div id="status-bar"><span id="status-text">Inizializzazione mappa...</span></div>
         <div class="toggle-container">
-            <span id="label-missing">Evidenzia zone da mappare</span>
+            <span>Mostra zone da mappare</span>
             <label class="switch">
                 <input type="checkbox" id="missing-data-toggle">
                 <span class="slider"></span>
@@ -252,156 +258,133 @@
         </div>
     </div>
 
+    <button id="info-btn">?</button>
+
+    <div id="info-panel">
+        <div class="legend-title">LEGENDA COLORI</div>
+        <ul class="legend-list">
+            <li class="legend-item"><div class="color-box" style="background: #00ff66;"></div><span>Libero (hgv=yes)</span></li>
+            <li class="legend-item"><div class="color-box" style="background: #3388ff;"></div><span>Consigliato (designated)</span></li>
+            <li class="legend-item"><div class="color-box" style="background: #ff00ff;"></div><span>Destinazione / Locali</span></li>
+            <li class="legend-item"><div class="color-box" style="background: #ffaa00;"></div><span>Limiti Fisici (Peso/H)</span></li>
+            <li class="legend-item"><div class="color-box" style="background: #ff3333;"></div><span>Divieto (hgv=no)</span></li>
+            <li class="legend-item"><div class="color-box" style="background: rgba(255,255,255,0.4); border: 1px dashed #666;"></div><span>Dati mancanti</span></li>
+        </ul>
+
+        <div class="legend-title">GUIDA TAG HGV <span>📚</span></div>
+        <p style="font-size: 0.7rem; color: #888; margin-top: 0;">Copia questi tag nell'editor OSM per mappare le restrizioni.</p>
+
+        <div class="legend-title" style="font-size: 0.75rem; border: none; margin-bottom: 5px;">ACCESSI</div>
+        <table class="guide-table">
+            <tr><td class="guide-key">hgv</td><td class="guide-val">yes / no / designated</td></tr>
+            <tr><td class="guide-key">hgv:conditional</td><td class="guide-val">no @ (08:00-20:00)</td></tr>
+            <tr><td class="guide-key">hgv:national</td><td class="guide-val">yes / no</td></tr>
+            <tr><td class="guide-key">goods</td><td class="guide-val">yes / no / delivery</td></tr>
+        </table>
+
+        <div class="legend-title" style="font-size: 0.75rem; border: none; margin-bottom: 5px;">DIMENSIONI</div>
+        <table class="guide-table">
+            <tr><td class="guide-key">maxheight</td><td class="guide-val">Altezza (m)</td></tr>
+            <tr><td class="guide-key">maxwidth</td><td class="guide-val">Larghezza (m)</td></tr>
+            <tr><td class="guide-key">maxlength</td><td class="guide-val">Lunghezza (m)</td></tr>
+        </table>
+
+        <div class="legend-title" style="font-size: 0.75rem; border: none; margin-bottom: 5px;">MASSE E PESI</div>
+        <table class="guide-table">
+            <tr><td class="guide-key">maxweight</td><td class="guide-val">Massa totale (t)</td></tr>
+            <tr><td class="guide-key">maxweight:hgv</td><td class="guide-val">Solo autocarri (t)</td></tr>
+            <tr><td class="guide-key">maxaxleload</td><td class="guide-val">Peso per asse (t)</td></tr>
+            <tr><td class="guide-key">maxweightrating</td><td class="guide-val">Peso a pieno carico</td></tr>
+        </table>
+
+        <div class="legend-title" style="font-size: 0.75rem; border: none; margin-bottom: 5px;">MERCI E RIMORCHI</div>
+        <table class="guide-table">
+            <tr><td class="guide-key">hazmat</td><td class="guide-val">yes / no / designated</td></tr>
+            <tr><td class="guide-key">hazmat:water</td><td class="guide-val">yes / no (idrico)</td></tr>
+            <tr><td class="guide-key">trailer</td><td class="guide-val">yes / no</td></tr>
+            <tr><td class="guide-key">hgv_articulated</td><td class="guide-val">yes / no</td></tr>
+        </table>
+    </div>
+
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
     <script>
-        const userLang = (navigator.language || navigator.userLanguage || 'it').split('-')[0];
-        
-        const i18n = {
-            it: {
-                title: "🚛 HGV Explorer",
-                zoomIn: "Zooma per i dati (z15+)",
-                fetching: "Interrogazione OSM...",
-                mapped: "{n} elementi caricati",
-                serverBusy: "Server occupato, riprovo tra poco...",
-                showMissing: "Evidenzia zone da mappare",
-                dataBadge: "Dati Esistenti",
-                noDataBadge: "Nessun dato HGV",
-                editBtn: "✎ Modifica con editor iD",
-                locError: "Impossibile ottenere la posizione",
-                searchError: "Luogo non trovato",
-                sections: {
-                    current: "Valori Attuali Rilevati",
-                    suggest: "Suggerimenti per la mappatura",
-                    access: "Accesso & Percorsi",
-                    phys: "Dimensioni & Peso",
-                    cargo: "Merci & Carichi"
-                }
-            },
-            en: {
-                title: "🚛 HGV Explorer",
-                zoomIn: "Zoom in for data (z15+)",
-                fetching: "Querying OSM...",
-                mapped: "{n} elements loaded",
-                serverBusy: "Server busy, retrying soon...",
-                showMissing: "Highlight zones to map",
-                dataBadge: "Existing Data",
-                noDataBadge: "No HGV Data",
-                editBtn: "✎ Edit with iD Editor",
-                locError: "Could not get location",
-                searchError: "Place not found",
-                sections: {
-                    current: "Current Values Detected",
-                    suggest: "Mapping Suggestions",
-                    access: "Access & Routes",
-                    phys: "Dimensions & Weight",
-                    cargo: "Cargo & Loads"
-                }
-            }
+        const lang = {
+            zoomIn: "Zooma per i dati (z15+)",
+            fetching: "Interrogazione OSM...",
+            mapped: "{n} elementi caricati",
+            serverBusy: "Server occupato o area troppo grande",
+            dataBadge: "Dati Presenti",
+            noDataBadge: "Dati Mancanti",
+            editBtn: "✎ Modifica con editor iD",
+            tagHeader: "TAG ATTUALI"
         };
 
-        const lang = i18n[userLang] || i18n.en;
+        const infoBtn = document.getElementById('info-btn');
+        const infoPanel = document.getElementById('info-panel');
+        infoBtn.onclick = () => {
+            const isVisible = infoPanel.style.display === 'block';
+            infoPanel.style.display = isVisible ? 'none' : 'block';
+            infoBtn.style.background = isVisible ? '#ffcc00' : '#fff';
+        };
 
-        const legendData = [
-            { c: "#00ff66", t: "Libero (yes)" },
-            { c: "#3388ff", t: "Consigliato (designated)" },
-            { c: "#ff00ff", t: "Locali / Consegne" },
-            { c: "#ff3333", t: "Divieto (no)" },
-            { c: "#ffaa00", t: "Limiti Fisici" },
-            { c: "rgba(255, 255, 255, 0.3)", t: "Mancanti (da mappare)" }
-        ];
-
-        document.getElementById('ui-title').textContent = lang.title;
-        document.getElementById('label-missing').textContent = lang.showMissing;
-        const legendContainer = document.getElementById('ui-legend');
-        legendData.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'legend-item';
-            div.innerHTML = `<div class="color-box" style="background: ${item.c};"></div><span>${item.t}</span>`;
-            legendContainer.appendChild(div);
-        });
-
-        const map = L.map('map', { zoomControl: false }).setView([45.4642, 9.1900], 15);
-        const overpassEndpoints = [
-            'https://overpass-api.de/api/interpreter',
-            'https://lz4.overpass-api.de/api/interpreter',
-            'https://overpass.kumi.systems/api/interpreter'
-        ];
-        let currentEndpointIndex = 0;
-
+        const map = L.map('map', { zoomControl: false, maxZoom: 19 }).setView([45.4642, 9.1900], 15);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM' }).addTo(map);
 
         const hgvLayer = L.layerGroup().addTo(map);
         let currentAbortController = null;
         let showMissing = false;
         let debounceTimer = null;
 
-        // --- Ricerca Luogo (Nominatim) ---
         async function performSearch() {
             const query = document.getElementById('search-box').value;
             if (!query) return;
-
             try {
-                document.getElementById('status-text').textContent = "Ricerca in corso...";
                 const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
                 const data = await response.json();
-                
-                if (data && data.length > 0) {
-                    const { lat, lon } = data[0];
-                    map.setView([lat, lon], 16);
-                } else {
-                    document.getElementById('status-text').innerHTML = `<span class="status-warn">${lang.searchError}</span>`;
-                }
-            } catch (e) {
-                console.error(e);
-            }
+                if (data?.[0]) map.setView([data[0].lat, data[0].lon], 16);
+            } catch (e) { console.error(e); }
         }
 
-        document.getElementById('search-btn').addEventListener('click', performSearch);
-        document.getElementById('search-box').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') performSearch();
-        });
+        document.getElementById('search-btn').onclick = performSearch;
+        document.getElementById('search-box').onkeypress = (e) => e.key === 'Enter' && performSearch();
+        document.getElementById('gps-btn').onclick = () => map.locate({ setView: true, maxZoom: 16 });
 
-        // --- GPS Geolocation ---
-        document.getElementById('gps-btn').addEventListener('click', () => {
-            map.locate({ setView: true, maxZoom: 16 });
-        });
-
-        map.on('locationerror', () => {
-            document.getElementById('status-text').innerHTML = `<span class="status-warn">${lang.locError}</span>`;
-        });
-
-        // --- Fetch Dati ---
-        document.getElementById('missing-data-toggle').addEventListener('change', (e) => {
+        document.getElementById('missing-data-toggle').onchange = (e) => {
             showMissing = e.target.checked;
             triggerFetch();
-        });
+        };
 
         function triggerFetch() {
             if (debounceTimer) clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(fetchHGVData, 800); 
+            debounceTimer = setTimeout(fetchHGVData, 600); 
         }
 
         async function fetchHGVData() {
             const zoom = map.getZoom();
-            const minZoom = showMissing ? 16 : 15;
-            if (zoom < minZoom) {
+            if (zoom < 15) {
+                document.getElementById('status-text').textContent = lang.zoomIn;
+                hgvLayer.clearLayers();
+                return;
+            }
+
+            // Impedisce il crash se l'utente zooma troppo indietro
+            const bounds = map.getBounds();
+            const area = (bounds.getNorth() - bounds.getSouth()) * (bounds.getEast() - bounds.getWest());
+            if (area > 0.05) { // Limite di sicurezza per l'area
                 document.getElementById('status-text').textContent = lang.zoomIn;
                 return;
             }
+
             if (currentAbortController) currentAbortController.abort();
             currentAbortController = new AbortController();
 
-            const b = map.getBounds();
-            const bbox = `${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
+            const bbox = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
             
-            let query = `[out:json][timeout:50];(`;
-            query += `way["hgv"](${bbox});way["maxheight"](${bbox});way["maxweight"](${bbox});way["maxwidth"](${bbox});way["hazmat"](${bbox});way["maxlength"](${bbox});`;
+            let query = `[out:json][timeout:25];(`;
+            query += `way["hgv"](${bbox});way["maxheight"](${bbox});way["maxweight"](${bbox});way["maxwidth"](${bbox});way["hazmat"](${bbox});way["maxlength"](${bbox});way["maxaxleload"](${bbox});way["goods"](${bbox});way["maxweight:hgv"](${bbox});way["hgv:national"](${bbox});`;
             if (showMissing) {
                 query += `way["highway"~"^(primary|secondary|tertiary|unclassified|residential)$"]["hgv"!~"."]["maxheight"!~"."]["maxweight"!~"."](${bbox});`;
             }
@@ -409,113 +392,64 @@
 
             try {
                 document.getElementById('status-text').textContent = lang.fetching;
-                const response = await fetch(overpassEndpoints[currentEndpointIndex], { 
+                const response = await fetch('https://overpass-api.de/api/interpreter', { 
                     method: 'POST', body: query, signal: currentAbortController.signal 
                 });
-                
-                if (!response.ok) throw new Error('Server Busy');
-
+                if (!response.ok) throw new Error();
                 const data = await response.json();
                 renderData(data);
-                document.getElementById('status-text').textContent = lang.mapped.replace('{n}', data.elements.filter(e => e.tags).length);
+                document.getElementById('status-text').textContent = lang.mapped.replace('{n}', data.elements.length);
             } catch (e) {
-                if (e.name !== 'AbortError') {
-                    currentEndpointIndex = (currentEndpointIndex + 1) % overpassEndpoints.length;
-                    document.getElementById('status-text').innerHTML = `<span class="status-warn">${lang.serverBusy}</span>`;
-                    setTimeout(triggerFetch, 3000);
-                }
+                if (e.name !== 'AbortError') document.getElementById('status-text').textContent = lang.serverBusy;
             }
         }
 
         function renderData(data) {
             hgvLayer.clearLayers();
-            
             data.elements.forEach(el => {
                 if (!el.tags || el.type !== 'way' || !el.geometry) return;
                 const t = el.tags;
-                const relevantTags = ['hgv', 'maxheight', 'maxweight', 'maxwidth', 'maxlength', 'hazmat', 'maxaxleload', 'trailer'];
-                const hgvTagsFound = relevantTags.filter(key => t[key]);
-                const hasHGV = hgvTagsFound.length > 0;
+                const hgvKeys = [
+                    'hgv', 'hgv:conditional', 'hgv:national', 'goods', 'maxheight', 'maxweight', 
+                    'maxweight:hgv', 'maxweightrating', 'maxwidth', 'maxlength', 'maxaxleload', 
+                    'maxweight:articulated', 'hazmat', 'hazmat:conditional', 'trailer', 'trailer:maxweight'
+                ];
+                const tagsFound = hgvKeys.filter(k => t[k]);
+                const hasData = tagsFound.length > 0;
 
                 let color = "rgba(255, 255, 255, 0.2)";
-                let weight = 3;
-                let dashArray = null;
+                let weight = hasData ? 5 : 2;
+                let dashArray = hasData ? null : "5, 5";
 
-                if (t.hgv === 'no') color = "#ff3333";
-                else if (t.hgv === 'yes') color = "#00ff66";
-                else if (t.hgv === 'designated') color = "#3388ff";
+                if (t.hgv === 'no' || t.goods === 'no') color = "#ff3333";
+                else if (t.hgv === 'yes' || t.goods === 'yes') color = "#00ff66";
+                else if (t.hgv === 'designated' || t.goods === 'designated') color = "#3388ff";
                 else if (['destination', 'delivery', 'local'].some(v => t.hgv?.includes(v))) color = "#ff00ff";
-                else if (t.maxheight || t.maxweight) color = "#ffaa00";
-                
-                if (!hasHGV) {
-                    if (!showMissing) return;
-                    color = "rgba(255, 255, 255, 0.4)";
-                    dashArray = "10, 10";
-                    weight = 2;
-                } else { weight = 6; }
+                else if (t.maxheight || t.maxweight || t.maxwidth || t.maxaxleload || t['maxweight:hgv']) color = "#ffaa00";
 
-                const latlngs = el.geometry.map(pt => [pt.lat, pt.lon]);
-                if (latlngs.length >= 2) {
-                    // GHOST TARGET PER CLIC FACILITATO
-                    const ghostPoly = L.polyline(latlngs, {
-                        color: 'transparent',
-                        weight: 20,
-                        interactive: true
-                    }).addTo(hgvLayer);
+                const latlngs = el.geometry.map(p => [p.lat, p.lon]);
+                const ghost = L.polyline(latlngs, { color: 'transparent', weight: 15 }).addTo(hgvLayer);
+                const visible = L.polyline(latlngs, { color, weight, dashArray, opacity: 0.85 }).addTo(hgvLayer);
 
-                    const visiblePoly = L.polyline(latlngs, { 
-                        color, 
-                        weight, 
-                        dashArray, 
-                        opacity: 0.85,
-                        interactive: false 
-                    }).addTo(hgvLayer);
+                ghost.on('click', (e) => {
+                    const editUrl = `https://www.openstreetmap.org/edit?way=${el.id}`;
+                    let content = `<div class="data-badge ${hasData ? 'has-data' : 'missing'}">${hasData ? lang.dataBadge : lang.noDataBadge}</div>`;
                     
-                    ghostPoly.on('click', (e) => {
-                        const editUrl = `https://www.openstreetmap.org/edit?way=${el.id}`;
-                        let tableContent = "";
+                    if (hasData) {
+                        content += `<div class="table-container"><table class="data-table">
+                            <tr class="table-header"><td colspan="2">${lang.tagHeader}</td></tr>`;
+                        tagsFound.forEach(k => {
+                            content += `<tr class="table-row"><td class="table-key">${k}</td><td class="table-val">${t[k]}</td></tr>`;
+                        });
+                        content += `</table></div>`;
+                    }
+                    
+                    content += `<a href="${editUrl}" target="_blank" class="btn-edit">${lang.editBtn}</a>`;
+                    L.popup({ maxWidth: 300 }).setLatLng(e.latlng).setContent(content).openOn(map);
+                });
 
-                        if (hasHGV) {
-                            tableContent = `
-                                <div class="table-container">
-                                    <table class="data-table">
-                                        <tr class="table-header"><td colspan="2">${lang.sections.current}</td></tr>
-                                        ${hgvTagsFound.map(k => `
-                                            <tr class="table-row"><td class="table-key">${k}</td><td class="table-val">${t[k]}</td></tr>
-                                        `).join('')}
-                                    </table>
-                                </div>`;
-                        } else {
-                            tableContent = `
-                                <div class="table-container">
-                                    <table class="data-table">
-                                        <tr class="table-header"><td colspan="2">${lang.sections.access}</td></tr>
-                                        <tr class="table-row"><td class="table-key">hgv=no</td><td class="table-val">Vietato</td></tr>
-                                        <tr class="table-row"><td class="table-key">hgv=designated</td><td class="table-val">Consigliato</td></tr>
-                                        <tr class="table-header"><td colspan="2">${lang.sections.phys}</td></tr>
-                                        <tr class="table-row"><td class="table-key">maxheight=*</td><td class="table-val">Altezza (m)</td></tr>
-                                        <tr class="table-row"><td class="table-key">maxweight=*</td><td class="table-val">Peso (t)</td></tr>
-                                    </table>
-                                </div>`;
-                        }
-
-                        const popupHtml = `
-                            <div class="data-badge ${hasHGV ? 'has-data' : 'missing'}">${hasHGV ? lang.dataBadge : lang.noDataBadge}</div>
-                            <div class="popup-info">${hasHGV ? 'Informazioni rilevate su mappa.' : 'Strada senza tag HGV specifici.'}</div>
-                            ${tableContent}
-                            <a href="${editUrl}" target="_blank" class="btn-edit">${lang.editBtn}</a>
-                        `;
-
-                        L.popup({ maxWidth: 350 }).setLatLng(e.latlng).setContent(popupHtml).openOn(map);
-                    });
-
-                    ghostPoly.on('mouseover', () => {
-                        visiblePoly.setStyle({ weight: weight + 4, opacity: 1 });
-                    });
-                    ghostPoly.on('mouseout', () => {
-                        visiblePoly.setStyle({ weight: weight, opacity: 0.85 });
-                    });
-                }
+                ghost.on('mouseover', () => visible.setStyle({ weight: weight + 2, opacity: 1 }));
+                ghost.on('mouseout', () => visible.setStyle({ weight: weight, opacity: 0.85 }));
             });
         }
 
