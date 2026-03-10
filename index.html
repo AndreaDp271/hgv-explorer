@@ -29,7 +29,17 @@
             --accent-contrast: #111;
             --link-key: #88ccff;
             --link-value: #ccff88;
+            --badge-has-data-bg: #2e7d32;
+            --badge-missing-bg: #c62828;
+            --badge-text: #ffffff;
             --theme-toggle-bg: #333;
+            --line-allowed: #39ff88;
+            --line-designated: #4ea1ff;
+            --line-local: #ff59db;
+            --line-limits: #ffb347;
+            --line-forbidden: #ff4d4d;
+            --line-missing: rgba(232, 238, 248, 0.42);
+            --line-missing-border: #8a96ab;
         }
 
         body.light-theme {
@@ -49,6 +59,18 @@
             --popup-border: #ccd5e3;
             --card-shadow: 0 8px 30px rgba(24, 38, 61, 0.22);
             --theme-toggle-bg: #a8b3c6;
+            --line-allowed: #0b9449;
+            --line-designated: #1f63d0;
+            --line-local: #a70f8d;
+            --line-limits: #b76900;
+            --line-forbidden: #c62828;
+            --line-missing: rgba(58, 72, 92, 0.5);
+            --line-missing-border: #4f5e74;
+            --link-key: #1f4f9d;
+            --link-value: #2f7a15;
+            --badge-has-data-bg: #9be7b2;
+            --badge-missing-bg: #ffb3b3;
+            --badge-text: #202734;
         }
 
         body {
@@ -240,6 +262,12 @@
         .legend-list { list-style: none; padding: 0; margin: 0 0 20px 0; font-size: 0.8rem; }
         .legend-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
         .color-box { width: 14px; height: 14px; border-radius: 3px; }
+        .color-box.allowed { background: var(--line-allowed); }
+        .color-box.designated { background: var(--line-designated); }
+        .color-box.local { background: var(--line-local); }
+        .color-box.limits { background: var(--line-limits); }
+        .color-box.forbidden { background: var(--line-forbidden); }
+        .color-box.missing { background: var(--line-missing); border: 1px dashed var(--line-missing-border); }
 
         .guide-table { width: 100%; border-collapse: collapse; font-size: 0.7rem; margin-bottom: 15px; background: var(--input-bg); border-radius: 4px; overflow: hidden; }
         .guide-table td { padding: 6px 8px; border-bottom: 1px solid var(--table-border); }
@@ -262,8 +290,8 @@
             font-weight: bold;
             text-transform: uppercase;
         }
-        .data-badge.has-data { background: #2e7d32; }
-        .data-badge.missing { background: #c62828; }
+        .data-badge.has-data { background: var(--badge-has-data-bg); color: var(--badge-text); }
+        .data-badge.missing { background: var(--badge-missing-bg); color: var(--badge-text); }
 
         .table-container {
             max-height: 200px;
@@ -279,7 +307,7 @@
         .table-val { padding: 6px 8px; color: var(--link-value); text-align: right; font-weight: bold; }
 
         .btn-edit {
-            display: block; width: 100%; text-align: center;
+            display: block; width: 100%; box-sizing: border-box; text-align: center;
             background: var(--accent); color: var(--accent-contrast); text-decoration: none;
             padding: 10px; border-radius: 6px; font-size: 0.8rem;
             font-weight: bold; margin-top: 15px; transition: 0.2s;
@@ -321,16 +349,16 @@
     <div id="info-panel">
         <div class="legend-title">LEGENDA COLORI</div>
         <ul class="legend-list">
-            <li class="legend-item"><div class="color-box" style="background: #00ff66;"></div><span>Libero (hgv=yes)</span></li>
-            <li class="legend-item"><div class="color-box" style="background: #3388ff;"></div><span>Consigliato (designated)</span></li>
-            <li class="legend-item"><div class="color-box" style="background: #ff00ff;"></div><span>Destinazione / Locali</span></li>
-            <li class="legend-item"><div class="color-box" style="background: #ffaa00;"></div><span>Limiti Fisici (Peso/H)</span></li>
-            <li class="legend-item"><div class="color-box" style="background: #ff3333;"></div><span>Divieto (hgv=no)</span></li>
-            <li class="legend-item"><div class="color-box" style="background: rgba(255,255,255,0.4); border: 1px dashed #666;"></div><span>Dati mancanti</span></li>
+            <li class="legend-item"><div class="color-box allowed"></div><span>Libero (hgv=yes)</span></li>
+            <li class="legend-item"><div class="color-box designated"></div><span>Consigliato (designated)</span></li>
+            <li class="legend-item"><div class="color-box local"></div><span>Destinazione / Locali</span></li>
+            <li class="legend-item"><div class="color-box limits"></div><span>Limiti Fisici (Peso/H)</span></li>
+            <li class="legend-item"><div class="color-box forbidden"></div><span>Divieto (hgv=no)</span></li>
+            <li class="legend-item"><div class="color-box missing"></div><span>Dati mancanti</span></li>
         </ul>
 
         <div class="legend-title">GUIDA TAG HGV <span>📚</span></div>
-        <p style="font-size: 0.7rem; color: #888; margin-top: 0;">Copia questi tag nell'editor OSM per mappare le restrizioni.</p>
+        <p style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0;">Copia questi tag nell'editor OSM per mappare le restrizioni.</p>
 
         <div class="legend-title" style="font-size: 0.75rem; border: none; margin-bottom: 5px;">ACCESSI</div>
         <table class="guide-table">
@@ -554,6 +582,16 @@
         }
 
         function renderData(data) {
+            const styles = getComputedStyle(document.body);
+            const linePalette = {
+                missing: styles.getPropertyValue('--line-missing').trim(),
+                forbidden: styles.getPropertyValue('--line-forbidden').trim(),
+                allowed: styles.getPropertyValue('--line-allowed').trim(),
+                designated: styles.getPropertyValue('--line-designated').trim(),
+                local: styles.getPropertyValue('--line-local').trim(),
+                limits: styles.getPropertyValue('--line-limits').trim()
+            };
+
             hgvLayer.clearLayers();
             data.elements.forEach(el => {
                 if (!el.tags || el.type !== 'way' || !el.geometry) return;
@@ -566,15 +604,15 @@
                 const tagsFound = hgvKeys.filter(k => t[k]);
                 const hasData = tagsFound.length > 0;
 
-                let color = "rgba(255, 255, 255, 0.2)";
+                let color = linePalette.missing;
                 let weight = hasData ? 5 : 2;
                 let dashArray = hasData ? null : "5, 5";
 
-                if (t.hgv === 'no' || t.goods === 'no') color = "#ff3333";
-                else if (t.hgv === 'yes' || t.goods === 'yes') color = "#00ff66";
-                else if (t.hgv === 'designated' || t.goods === 'designated') color = "#3388ff";
-                else if (['destination', 'delivery', 'local'].some(v => t.hgv?.includes(v))) color = "#ff00ff";
-                else if (t.maxheight || t.maxweight || t.maxwidth || t.maxaxleload || t['maxweight:hgv']) color = "#ffaa00";
+                if (t.hgv === 'no' || t.goods === 'no') color = linePalette.forbidden;
+                else if (t.hgv === 'yes' || t.goods === 'yes') color = linePalette.allowed;
+                else if (t.hgv === 'designated' || t.goods === 'designated') color = linePalette.designated;
+                else if (['destination', 'delivery', 'local'].some(v => t.hgv?.includes(v))) color = linePalette.local;
+                else if (t.maxheight || t.maxweight || t.maxwidth || t.maxaxleload || t['maxweight:hgv']) color = linePalette.limits;
 
                 const latlngs = el.geometry.map(p => [p.lat, p.lon]);
                 const ghost = L.polyline(latlngs, { color: 'transparent', weight: 15 }).addTo(hgvLayer);
