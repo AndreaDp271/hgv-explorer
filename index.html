@@ -9,10 +9,53 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     
     <style>
+        :root {
+            --bg-page: #171a1f;
+            --overlay-bg: rgba(26, 30, 36, 0.9);
+            --overlay-border: #3f4652;
+            --text-main: #f5f7fb;
+            --text-muted: #aeb5c2;
+            --input-bg: #232833;
+            --input-focus-bg: #2e3440;
+            --btn-bg: #2e3440;
+            --btn-hover-bg: #3b4352;
+            --panel-bg: rgba(24, 28, 34, 0.96);
+            --table-bg: #232833;
+            --table-border: #171c24;
+            --popup-bg: #1f2430;
+            --popup-border: #3f4652;
+            --card-shadow: 0 8px 32px rgba(0,0,0,0.45);
+            --accent: #ffcc00;
+            --accent-contrast: #111;
+            --link-key: #88ccff;
+            --link-value: #ccff88;
+            --theme-toggle-bg: #333;
+        }
+
+        body.light-theme {
+            --bg-page: #eef2f7;
+            --overlay-bg: rgba(255, 255, 255, 0.92);
+            --overlay-border: #c9d2df;
+            --text-main: #1c2430;
+            --text-muted: #596579;
+            --input-bg: #f6f8fb;
+            --input-focus-bg: #ffffff;
+            --btn-bg: #e8edf5;
+            --btn-hover-bg: #dce5f2;
+            --panel-bg: rgba(255, 255, 255, 0.97);
+            --table-bg: #f3f6fb;
+            --table-border: #d7dee9;
+            --popup-bg: #ffffff;
+            --popup-border: #ccd5e3;
+            --card-shadow: 0 8px 30px rgba(24, 38, 61, 0.22);
+            --theme-toggle-bg: #a8b3c6;
+        }
+
         body {
             margin: 0;
             padding: 0;
-            background-color: #0d0d0d;
+            background-color: var(--bg-page);
+            color: var(--text-main);
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             overflow: hidden;
         }
@@ -29,13 +72,13 @@
             top: 20px;
             left: 20px;
             z-index: 2000; /* Aumentato per stare sopra a tutto */
-            background: rgba(0, 0, 0, 0.9);
+            background: var(--overlay-bg);
             padding: 15px;
             border-radius: 12px;
-            border: 1px solid #444;
-            color: #fff;
+            border: 1px solid var(--overlay-border);
+            color: var(--text-main);
             width: 300px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+            box-shadow: var(--card-shadow);
             backdrop-filter: blur(10px);
             pointer-events: auto; /* Fondamentale per l'interazione */
         }
@@ -43,7 +86,7 @@
         h1 {
             margin: 0 0 10px 0;
             font-size: 1rem;
-            color: #ffcc00;
+            color: var(--accent);
             text-transform: uppercase;
             letter-spacing: 1px;
             display: flex;
@@ -60,25 +103,25 @@
 
         .search-input {
             flex-grow: 1;
-            background: #222;
-            border: 1px solid #444;
+            background: var(--input-bg);
+            border: 1px solid var(--overlay-border);
             border-radius: 6px;
             padding: 8px 12px;
-            color: white;
+            color: var(--text-main);
             font-size: 0.8rem;
             outline: none;
             pointer-events: auto; /* Assicura che l'input riceva il focus */
         }
 
         .search-input:focus { 
-            border-color: #ffcc00; 
-            background: #333;
+            border-color: var(--accent); 
+            background: var(--btn-bg);
         }
 
         .icon-btn {
-            background: #333;
-            border: 1px solid #444;
-            color: white;
+            background: var(--btn-bg);
+            border: 1px solid var(--overlay-border);
+            color: var(--text-main);
             width: 36px;
             height: 36px;
             border-radius: 6px;
@@ -90,19 +133,19 @@
             pointer-events: auto;
         }
 
-        .icon-btn:hover { background: #444; color: #ffcc00; }
-        .icon-btn.gps-btn { background: #ffcc00; color: #000; border: none; }
+        .icon-btn:hover { background: var(--btn-hover-bg); color: var(--accent); }
+        .icon-btn.gps-btn { background: var(--accent); color: var(--accent-contrast); border: none; }
 
         #status-bar {
             font-size: 0.75rem;
-            color: #aaa;
+            color: var(--text-muted);
             margin-bottom: 5px;
         }
 
         .toggle-container {
             margin-top: 10px;
             padding-top: 10px;
-            border-top: 1px solid #333;
+            border-top: 1px solid var(--overlay-border);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -122,7 +165,7 @@
             position: absolute;
             cursor: pointer;
             top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #333;
+            background-color: var(--theme-toggle-bg);
             transition: .4s;
             border-radius: 20px;
         }
@@ -132,12 +175,12 @@
             content: "";
             height: 14px; width: 14px;
             left: 3px; bottom: 3px;
-            background-color: white;
+            background-color: var(--text-main);
             transition: .4s;
             border-radius: 50%;
         }
 
-        input:checked + .slider { background-color: #ffcc00; }
+        input:checked + .slider { background-color: var(--accent); }
         input:checked + .slider:before { transform: translateX(14px); }
 
         /* Pulsante Info Legenda */
@@ -149,8 +192,8 @@
             width: 44px;
             height: 44px;
             border-radius: 50%;
-            background: #ffcc00;
-            color: #000;
+            background: var(--accent);
+            color: var(--accent-contrast);
             border: none;
             font-size: 1.2rem;
             font-weight: bold;
@@ -168,26 +211,26 @@
             top: 75px;
             right: 20px;
             z-index: 2000;
-            background: rgba(15, 15, 15, 0.98);
-            border: 1px solid #444;
+            background: var(--panel-bg);
+            border: 1px solid var(--overlay-border);
             border-radius: 12px;
             width: 320px;
             max-height: 80vh;
             padding: 20px;
-            color: #eee;
+            color: var(--text-main);
             display: none;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            box-shadow: var(--card-shadow);
             backdrop-filter: blur(10px);
             overflow-y: auto;
             pointer-events: auto;
         }
 
         .legend-title { 
-            color: #ffcc00; 
+            color: var(--accent); 
             font-size: 0.85rem; 
             font-weight: bold; 
             margin-bottom: 12px; 
-            border-bottom: 1px solid #333; 
+            border-bottom: 1px solid var(--overlay-border); 
             padding-bottom: 5px;
             display: flex;
             align-items: center;
@@ -198,20 +241,20 @@
         .legend-item { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
         .color-box { width: 14px; height: 14px; border-radius: 3px; }
 
-        .guide-table { width: 100%; border-collapse: collapse; font-size: 0.7rem; margin-bottom: 15px; background: #222; border-radius: 4px; overflow: hidden; }
-        .guide-table td { padding: 6px 8px; border-bottom: 1px solid #111; }
-        .guide-key { color: #88ccff; font-family: monospace; }
-        .guide-val { color: #aaa; text-align: right; }
+        .guide-table { width: 100%; border-collapse: collapse; font-size: 0.7rem; margin-bottom: 15px; background: var(--input-bg); border-radius: 4px; overflow: hidden; }
+        .guide-table td { padding: 6px 8px; border-bottom: 1px solid var(--table-border); }
+        .guide-key { color: var(--link-key); font-family: monospace; }
+        .guide-val { color: var(--text-muted); text-align: right; }
 
         /* Popup Styles */
-        .leaflet-popup-content-wrapper { background: #1a1a1a; color: #fff; border: 1px solid #444; border-radius: 8px; width: 300px !important; }
+        .leaflet-popup-content-wrapper { background: var(--popup-bg); color: var(--text-main); border: 1px solid var(--overlay-border); border-radius: 8px; width: 300px !important; }
         .leaflet-popup-content { margin: 15px; }
-        .leaflet-popup-tip { background: #1a1a1a; }
+        .leaflet-popup-tip { background: var(--popup-bg); }
         
         .data-badge {
             display: inline-block;
-            background: #444;
-            color: white;
+            background: var(--btn-hover-bg);
+            color: var(--text-main);
             font-size: 0.65rem;
             padding: 3px 8px;
             border-radius: 4px;
@@ -225,26 +268,26 @@
         .table-container {
             max-height: 200px;
             overflow-y: auto;
-            background: #111;
-            border: 1px solid #333;
+            background: var(--table-bg);
+            border: 1px solid var(--overlay-border);
             border-radius: 6px;
         }
         .data-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
-        .table-header { background: #222; color: #ffcc00; padding: 8px; font-weight: bold; text-transform: uppercase; font-size: 0.65rem; text-align: left; }
-        .table-row { border-bottom: 1px solid #222; }
-        .table-key { padding: 6px 8px; color: #88ccff; font-family: monospace; }
-        .table-val { padding: 6px 8px; color: #ccff88; text-align: right; font-weight: bold; }
+        .table-header { background: var(--input-bg); color: var(--accent); padding: 8px; font-weight: bold; text-transform: uppercase; font-size: 0.65rem; text-align: left; }
+        .table-row { border-bottom: 1px solid var(--table-border); }
+        .table-key { padding: 6px 8px; color: var(--link-key); font-family: monospace; }
+        .table-val { padding: 6px 8px; color: var(--link-value); text-align: right; font-weight: bold; }
 
         .btn-edit {
             display: block; width: 100%; text-align: center;
-            background: #ffcc00; color: #000; text-decoration: none;
+            background: var(--accent); color: var(--accent-contrast); text-decoration: none;
             padding: 10px; border-radius: 6px; font-size: 0.8rem;
             font-weight: bold; margin-top: 15px; transition: 0.2s;
         }
         .btn-edit:hover { background: #e6b800; }
 
         #info-panel::-webkit-scrollbar { width: 4px; }
-        #info-panel::-webkit-scrollbar-thumb { background: #444; border-radius: 2px; }
+        #info-panel::-webkit-scrollbar-thumb { background: var(--btn-hover-bg); border-radius: 2px; }
     </style>
 </head>
 <body>
@@ -261,6 +304,13 @@
             <span>Mostra zone da mappare</span>
             <label class="switch">
                 <input type="checkbox" id="missing-data-toggle">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="toggle-container">
+            <span>Modalità scura</span>
+            <label class="switch">
+                <input type="checkbox" id="theme-toggle" checked>
                 <span class="slider"></span>
             </label>
         </div>
@@ -319,7 +369,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         const lang = {
-            zoomIn: "Zooma per i dati (z15+)",
+            zoomIn: "Zooma per i dati (z12+)",
             fetching: "Interrogazione OSM...",
             retrying: "Server lento, nuovo tentativo...",
             mapped: "{n} elementi caricati",
@@ -336,12 +386,12 @@
         infoBtn.onclick = () => {
             const isVisible = infoPanel.style.display === 'block';
             infoPanel.style.display = isVisible ? 'none' : 'block';
-            infoBtn.style.background = isVisible ? '#ffcc00' : '#fff';
+            infoBtn.style.background = isVisible ? 'var(--accent)' : 'var(--btn-hover-bg)';
         };
 
         const map = L.map('map', { zoomControl: false, maxZoom: 19 }).setView([45.4642, 9.1900], 15);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM' }).addTo(map);
+        const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM' }).addTo(map);
 
         // Prevenire che Leaflet catturi gli eventi di scroll/click sugli overlay della UI
         const overlays = [document.getElementById('ui-overlay'), document.getElementById('info-panel'), document.getElementById('info-btn')];
@@ -429,6 +479,12 @@
             triggerFetch();
         };
 
+        document.getElementById('theme-toggle').onchange = (e) => {
+            const isDark = e.target.checked;
+            document.body.classList.toggle('light-theme', !isDark);
+            tileLayer.setUrl(`https://{s}.basemaps.cartocdn.com/${isDark ? 'dark_all' : 'light_all'}/{z}/{x}/{y}{r}.png`);
+        };
+
         function triggerFetch() {
             if (debounceTimer) clearTimeout(debounceTimer);
             debounceTimer = setTimeout(fetchHGVData, 600); 
@@ -436,7 +492,7 @@
 
         async function fetchHGVData() {
             const zoom = map.getZoom();
-            if (zoom < 15) {
+            if (zoom < 12) {
                 document.getElementById('status-text').textContent = lang.zoomIn;
                 hgvLayer.clearLayers();
                 return;
@@ -444,7 +500,7 @@
 
             const bounds = map.getBounds();
             const area = (bounds.getNorth() - bounds.getSouth()) * (bounds.getEast() - bounds.getWest());
-            if (area > 0.05) {
+            if (area > 0.15) {
                 document.getElementById('status-text').textContent = lang.zoomIn;
                 return;
             }
