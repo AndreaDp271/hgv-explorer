@@ -89,6 +89,10 @@
             z-index: 1;
         }
 
+        .dark-basemap-tiles {
+            filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9) saturate(0.85);
+        }
+
         /* Overlay UI Principale */
         #ui-overlay {
             position: absolute;
@@ -519,28 +523,29 @@
 
         // NOTA: CARTO ha reso a pagamento (API key) le vecchie tile gratuite
         // su basemaps.cartocdn.com: mostravano il watermark "API KEY REQUIRED".
-        // Si usano quindi le tile Esri ArcGIS Online, gratuite e senza chiave.
-        const esriAttribution = 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, &copy; OpenStreetMap contributors, and the GIS user community';
+        // I Canvas Esri (grigio chiaro/scuro) sono gratuiti ma generalizzati e
+        // sgranati oltre lo zoom 16. Per un fondo dettagliato ad ogni zoom si usano
+        // le tile OSM standard (Stradale, e Scuro invertendone i colori via CSS) e
+        // il World Topo Map di Esri per Chiaro.
+        const osmAttribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
         const basemapStyles = {
             street: {
                 layers: [
-                    { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', maxNativeZoom: 19 }
+                    { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', maxNativeZoom: 19 }
                 ],
-                attribution: esriAttribution
+                attribution: osmAttribution
             },
             dark: {
                 layers: [
-                    { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', maxNativeZoom: 16 },
-                    { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', maxNativeZoom: 16 }
+                    { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', maxNativeZoom: 19, className: 'dark-basemap-tiles' }
                 ],
-                attribution: esriAttribution
+                attribution: osmAttribution
             },
             light: {
                 layers: [
-                    { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', maxNativeZoom: 16 },
-                    { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', maxNativeZoom: 16 }
+                    { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', maxNativeZoom: 19 }
                 ],
-                attribution: esriAttribution
+                attribution: 'Tiles &copy; Esri &mdash; Esri, HERE, Garmin, FAO, NOAA, USGS, &copy; OpenStreetMap contributors, and the GIS User Community'
             },
             satellite: {
                 layers: [
@@ -557,6 +562,7 @@
             tileLayers = style.layers.map((cfg, idx) => L.tileLayer(cfg.url, {
                 maxZoom: 19,
                 maxNativeZoom: cfg.maxNativeZoom,
+                className: cfg.className,
                 attribution: idx === 0 ? style.attribution : undefined
             }).addTo(map));
         }
