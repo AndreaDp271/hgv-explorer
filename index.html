@@ -487,10 +487,11 @@
         const lang = {
             zoomIn: "Zooma per i dati (z12+)",
             fetching: "Interrogazione OSM...",
-            retrying: "Server lento, nuovo tentativo...",
             mapped: "{n} elementi caricati",
+            mappedLoading: "{n} elementi (ancora in caricamento...)",
             cacheHit: "{n} elementi caricati (cache)",
-            serverBusy: "Server occupato o area troppo grande",
+            staleCache: "{n} elementi, versione salvata (rete non raggiungibile)",
+            serverBusy: "Server occupato, nuovo tentativo tra poco...",
             dataBadge: "Dati Presenti",
             noDataBadge: "Dati Mancanti",
             editBtn: "✎ Modifica con editor iD",
@@ -581,19 +582,62 @@
         let currentAbortController = null;
         let showMissing = false;
         let debounceTimer = null;
-        const overpassCache = new Map();
-        const MAX_CACHE_ENTRIES = 40;
-        function cacheData(key, data) {
-            if (overpassCache.size >= MAX_CACHE_ENTRIES) {
-                overpassCache.delete(overpassCache.keys().next().value);
-            }
-            overpassCache.set(key, data);
-        }
+
+        // Mirror pubblici Overpass, interrogati TUTTI in parallelo (vedi
+        // fetchOverpassBest): una risposta veloce ma incompleta (mirror sotto
+        // carico o con una replica indietro) non deve "vincere" solo perché
+        // arriva per prima, quindi si aspettano tutti (ognuno con il proprio
+        // timeout) e si tiene quello con più elementi. Lista curata nel tempo
+        // su un progetto gemello (CastelfrancoStreets): rimossi i mirror che
+        // rispondevano HTTP 200 in fretta ma con dati vuoti/rotti.
         const overpassEndpoints = [
             'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+            'https://overpass.openstreetmap.fr/api/interpreter',
+            'https://overpass.private.coffee/api/interpreter',
+            'https://overpass.kumi.systems/api/interpreter',
+            'https://overpass.monicz.dev/api/interpreter',
             'https://overpass-api.de/api/interpreter',
-            'https://overpass.openstreetmap.ru/cgi/interpreter'
+            'https://lz4.overpass-api.de/api/interpreter',
+            'https://z.overpass-api.de/api/interpreter'
         ];
+        const OVERPASS_TIMEOUT_MS = 25000;
+
+        // Cache per area geografica, sia in memoria che su localStorage: la
+        // seconda sopravvive al refresh/riapertura della pagina, così tornando
+        // sulla stessa zona non si rifà subito la query pesante a Overpass.
+        // Scrittura sempre in try/catch: se la quota è piena o lo storage non
+        // è disponibile (modalità privata) la cache resta solo in memoria,
+        // senza bloccare l'app.
+        const OSM_CACHE_STORAGE_KEY = 'hgvOverpassCache_v1';
+        const OSM_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 ore
+        const MAX_CACHE_ENTRIES = 25;
+
+        function loadPersistedCache() {
+            try {
+                const raw = JSON.parse(localStorage.getItem(OSM_CACHE_STORAGE_KEY));
+                return raw ? Object.entries(raw) : [];
+            } catch (e) { return []; }
+        }
+
+        const overpassCache = new Map(loadPersistedCache());
+
+        function persistCache() {
+            try {
+                localStorage.setItem(OSM_CACHE_STORAGE_KEY, JSON.stringify(Object.fromEntries(overpassCache)));
+            } catch (e) { /* quota piena o storage non disponibile: non bloccante */ }
+        }
+
+        function cacheData(key, data) {
+            if (!overpassCache.has(key) && overpassCache.size >= MAX_CACHE_ENTRIES) {
+                overpassCache.delete(overpassCache.keys().next().value);
+            }
+            overpassCache.set(key, { ts: Date.now(), data });
+            persistCache();
+        }
+
+        function isFresh(entry) {
+            return !!entry && (Date.now() - entry.ts) < OSM_CACHE_TTL_MS;
+        }
 
         function getCacheKey(bounds, includeMissing) {
             return [
@@ -605,34 +649,60 @@
             ].join('|');
         }
 
-        async function fetchOverpassWithFallback(query, signal) {
-            const errors = [];
-
-            for (const endpoint of overpassEndpoints) {
-                try {
-                    const response = await fetch(endpoint, {
-                        method: 'POST',
-                        body: query,
-                        signal
-                    });
-
-                    if (!response.ok) {
-                        errors.push(`${endpoint} -> HTTP ${response.status}`);
-                        continue;
-                    }
-
-                    return await response.json();
-                } catch (error) {
-                    if (error.name === 'AbortError') throw error;
-                    errors.push(`${endpoint} -> ${error.message}`);
-                }
+        // Aggancia il timeout per-richiesta E l'abort esterno (utente che
+        // sposta la mappa) sullo stesso AbortController, senza dipendere da
+        // AbortSignal.any/timeout (non ovunque disponibili): un timer forza
+        // l'abort se il mirror non risponde in tempo, l'abort esterno lo
+        // inoltra subito.
+        function fetchWithTimeout(url, options, timeoutMs, externalSignal) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            const onExternalAbort = () => controller.abort();
+            if (externalSignal) {
+                if (externalSignal.aborted) controller.abort();
+                else externalSignal.addEventListener('abort', onExternalAbort);
             }
-
-            throw new Error(errors.join(' | '));
+            return fetch(url, { ...options, signal: controller.signal }).finally(() => {
+                clearTimeout(timer);
+                if (externalSignal) externalSignal.removeEventListener('abort', onExternalAbort);
+            });
         }
 
-        function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
+        // Interroga TUTTI i mirror in parallelo. onUpdate (facoltativo) viene
+        // richiamato non appena c'è un dato mostrabile (il primo mirror che
+        // risponde) e di nuovo ogni volta che un mirror più lento risponde con
+        // PIÙ elementi di quello già mostrato: la mappa si popola subito,
+        // senza aspettare che tutti i mirror abbiano finito, e viene
+        // silenziosamente aggiornata se arriva un dato più completo.
+        function fetchOverpassBest(query, signal, onUpdate) {
+            let best = null;
+            const requests = overpassEndpoints.map(endpoint =>
+                fetchWithTimeout(endpoint, { method: 'POST', body: query }, OVERPASS_TIMEOUT_MS, signal)
+                    .then(response => {
+                        if (!response.ok) throw new Error(`${endpoint} -> HTTP ${response.status}`);
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (!best || (data.elements?.length || 0) > (best.elements?.length || 0)) {
+                            best = data;
+                            if (onUpdate) onUpdate(data);
+                        }
+                        return data;
+                    })
+            );
+
+            return Promise.allSettled(requests).then(settled => {
+                if (signal?.aborted) {
+                    const abortError = new Error('Aborted');
+                    abortError.name = 'AbortError';
+                    throw abortError;
+                }
+                if (!best) {
+                    const reasons = settled.filter(r => r.status === 'rejected').map(r => r.reason?.message).join(' | ');
+                    throw new Error(reasons || 'Nessun mirror Overpass disponibile');
+                }
+                return best;
+            });
         }
 
         let searchAbortController = null;
@@ -698,7 +768,6 @@
 
         document.getElementById('missing-data-toggle').onchange = (e) => {
             showMissing = e.target.checked;
-            overpassCache.clear();
             triggerFetch();
         };
 
@@ -709,10 +778,26 @@
 
         function triggerFetch() {
             if (debounceTimer) clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(fetchHGVData, 600); 
+            debounceTimer = setTimeout(fetchHGVData, 600);
+        }
+
+        // Se il caricamento fallisce (rete assente, tutti i mirror falliti),
+        // si ritenta da solo dopo un po' invece di lasciare l'utente con un
+        // messaggio d'errore fermo finché non muove la mappa a mano.
+        let retryTimer = null;
+        function cancelRetry() {
+            if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+        }
+        function scheduleRetry() {
+            if (retryTimer) return;
+            retryTimer = setTimeout(() => {
+                retryTimer = null;
+                fetchHGVData();
+            }, 15000);
         }
 
         async function fetchHGVData() {
+            cancelRetry();
             const zoom = map.getZoom();
             if (zoom < 12) {
                 setStatus(lang.zoomIn, false);
@@ -728,18 +813,21 @@
             }
 
             const cacheKey = getCacheKey(bounds, showMissing);
-            const cachedData = overpassCache.get(cacheKey);
-            if (cachedData) {
-                renderData(cachedData);
-                setStatus(lang.cacheHit.replace('{n}', cachedData.elements.length), false);
+            const cachedEntry = overpassCache.get(cacheKey);
+            if (isFresh(cachedEntry)) {
+                renderData(cachedEntry.data);
+                setStatus(lang.cacheHit.replace('{n}', cachedEntry.data.elements.length), false);
                 return;
             }
+            // Cache scaduta ma presente: meglio mostrare subito un dato
+            // vecchio che una mappa vuota, mentre parte comunque il refresh.
+            if (cachedEntry) renderData(cachedEntry.data);
 
             if (currentAbortController) currentAbortController.abort();
             currentAbortController = new AbortController();
 
             const bbox = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
-            
+
             let query = `[out:json][timeout:25];(`;
             query += `way["hgv"](${bbox});way["maxheight"](${bbox});way["maxweight"](${bbox});way["maxwidth"](${bbox});way["hazmat"](${bbox});way["maxlength"](${bbox});way["maxaxleload"](${bbox});way["goods"](${bbox});way["maxweight:hgv"](${bbox});way["hgv:national"](${bbox});`;
             if (showMissing) {
@@ -749,29 +837,22 @@
 
             try {
                 setStatus(lang.fetching, true);
-                let data = null;
-                const maxAttempts = 3;
-
-                for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-                    try {
-                        if (attempt > 1) {
-                            setStatus(`${lang.retrying} (${attempt}/${maxAttempts})`, true);
-                            await sleep(600 * attempt);
-                        }
-                        data = await fetchOverpassWithFallback(query, currentAbortController.signal);
-                        break;
-                    } catch (error) {
-                        if (error.name === 'AbortError') throw error;
-                        if (attempt === maxAttempts) throw error;
-                    }
-                }
-
-                if (!data) throw new Error('No data from Overpass');
+                const data = await fetchOverpassBest(query, currentAbortController.signal, (partial) => {
+                    renderData(partial);
+                    setStatus(lang.mappedLoading.replace('{n}', partial.elements.length), true);
+                });
                 cacheData(cacheKey, data);
                 renderData(data);
                 setStatus(lang.mapped.replace('{n}', data.elements.length), false);
             } catch (e) {
-                if (e.name !== 'AbortError') setStatus(lang.serverBusy, false);
+                if (e.name === 'AbortError') return;
+                if (cachedEntry) {
+                    renderData(cachedEntry.data);
+                    setStatus(lang.staleCache.replace('{n}', cachedEntry.data.elements.length), false);
+                } else {
+                    setStatus(lang.serverBusy, false);
+                }
+                scheduleRetry();
             }
         }
 
